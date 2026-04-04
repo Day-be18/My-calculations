@@ -14,6 +14,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
 :root {
@@ -565,6 +567,11 @@ select {
 <div class="toast" id="toast"></div>
 
 <script>
+/* ═══ SUPABASE ════════════════════════════════════ */
+const supabaseUrl = 'YOUR_SUPABASE_URL'; // Замените на ваш URL
+const supabaseKey = 'YOUR_SUPABASE_ANON_KEY'; // Замените на ваш ключ
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
 /* ═══ STATE ═══════════════════════════════════════ */
 let S = {
   payments: [],       // { id, label, amount, date }
@@ -580,16 +587,29 @@ const CAT_COLORS = {
 };
 
 /* ═══ BOOT ════════════════════════════════════════ */
-document.addEventListener('DOMContentLoaded', () => {
+async function loadData() {
+  try {
+    const { data: payments } = await supabase.from('payments').select('*');
+    const { data: expenses } = await supabase.from('expenses').select('*');
+    S.payments = payments || [];
+    S.expenses = expenses || [];
+  } catch (e) {
+    console.error('Error loading data:', e);
+    // Fallback to localStorage if Supabase fails
+    try {
+      const raw = localStorage.getItem('finflow3');
+      if (raw) S = { ...S, ...JSON.parse(raw) };
+    } catch(e){}
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
   el('hdrDate').textContent = new Date().toLocaleDateString('ru-RU',
     {day:'numeric', month:'long', year:'numeric'});
   el('expDate').value = todayISO();
   el('payDate').value = todayISO();
 
-  try {
-    const raw = localStorage.getItem('finflow3');
-    if (raw) S = { ...S, ...JSON.parse(raw) };
-  } catch(e){}
+  await loadData();
 
   if (S._rate)  el('shiftRate').value  = S._rate;
   if (S._count) el('shiftCount').value = S._count;
@@ -645,25 +665,38 @@ function save() {
 
 /* ═══ PAYMENTS ════════════════════════════════════
    Журнал ручных выплат                           */
-function addPayment() {
+async function addPayment() {
   const label  = el('payLabel').value.trim() || 'Выплата';
   const amount = parseFloat(el('payAmount').value) || 0;
   const date   = el('payDate').value;
 
   if (amount <= 0) { showToast('❗ Укажите сумму выплаты'); return; }
 
-  S.payments.push({ id: Date.now(), label, amount, date });
-  el('payLabel').value  = '';
-  el('payAmount').value = '';
-
-  refresh(); save();
-  showToast('✅ Выплата записана');
+  try {
+    const { data, error } = await supabase.from('payments').insert([{ label, amount, date }]).select();
+    if (error) throw error;
+    S.payments.push(data[0]);
+    el('payLabel').value  = '';
+    el('payAmount').value = '';
+    refresh();
+    showToast('✅ Выплата записана');
+  } catch (e) {
+    console.error('Error adding payment:', e);
+    showToast('❌ Ошибка добавления');
+  }
 }
 
-function deletePayment(id) {
-  S.payments = S.payments.filter(p => p.id !== id);
-  refresh(); save();
-  showToast('🗑 Выплата удалена');
+async function deletePayment(id) {
+  try {
+    const { error } = await supabase.from('payments').delete().eq('id', id);
+    if (error) throw error;
+    S.payments = S.payments.filter(p => p.id !== id);
+    refresh();
+    showToast('🗑 Выплата удалена');
+  } catch (e) {
+    console.error('Error deleting payment:', e);
+    showToast('❌ Ошибка удаления');
+  }
 }
 
 function payRowHTML(p, num) {
@@ -695,7 +728,7 @@ function calculateIncome() {
   S._rate=rate; S._count=count; S._days=days; S._bonus=bonus; S._tax=tax; S._net=net;
 
   showIncomeResult();
-  refresh(); save();
+  refresh();
   showToast('✅ План рассчитан');
 }
 
@@ -710,7 +743,7 @@ function showIncomeResult() {
 }
 
 /* ═══ EXPENSES ════════════════════════════════════ */
-function addExpense() {
+async function addExpense() {
   const name   = el('expName').value.trim();
   const cat    = el('expCat').value;
   const amount = parseFloat(el('expAmount').value) || 0;
@@ -719,18 +752,31 @@ function addExpense() {
   if (!name)      { showToast('❗ Введите название'); return; }
   if (amount <= 0){ showToast('❗ Укажите сумму');    return; }
 
-  S.expenses.push({ id: Date.now(), name, cat, amount, date });
-  el('expName').value   = '';
-  el('expAmount').value = '';
-
-  refresh(); save();
-  showToast('✅ Расход добавлен');
+  try {
+    const { data, error } = await supabase.from('expenses').insert([{ name, cat, amount, date }]).select();
+    if (error) throw error;
+    S.expenses.push(data[0]);
+    el('expName').value   = '';
+    el('expAmount').value = '';
+    refresh();
+    showToast('✅ Расход добавлен');
+  } catch (e) {
+    console.error('Error adding expense:', e);
+    showToast('❌ Ошибка добавления');
+  }
 }
 
-function deleteExpense(id) {
-  S.expenses = S.expenses.filter(e => e.id !== id);
-  refresh(); save();
-  showToast('🗑 Удалено');
+async function deleteExpense(id) {
+  try {
+    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    if (error) throw error;
+    S.expenses = S.expenses.filter(e => e.id !== id);
+    refresh();
+    showToast('🗑 Удалено');
+  } catch (e) {
+    console.error('Error deleting expense:', e);
+    showToast('❌ Ошибка удаления');
+  }
 }
 
 function expRowHTML(e, withDelete) {
@@ -865,15 +911,21 @@ function renderChart(totalExp) {
 }
 
 /* ═══ RESET ═══════════════════════════════════════ */
-function resetAll() {
+async function resetAll() {
   if (!confirm('Сбросить все данные?\nЭто действие нельзя отменить.')) return;
-  localStorage.removeItem('finflow3');
-  S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[] };
-  ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
-  el('workDays').value = '22';
-  el('incomeResult').style.display = 'none';
-  refresh();
-  showToast('🗑 Данные сброшены');
+  try {
+    await supabase.from('payments').delete().neq('id', 0); // Delete all
+    await supabase.from('expenses').delete().neq('id', 0);
+    S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[] };
+    ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
+    el('workDays').value = '22';
+    el('incomeResult').style.display = 'none';
+    refresh();
+    showToast('🗑 Данные сброшены');
+  } catch (e) {
+    console.error('Error resetting data:', e);
+    showToast('❌ Ошибка сброса');
+  }
 }
 
 /* ═══ TOAST ═══════════════════════════════════════ */
