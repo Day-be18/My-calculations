@@ -311,7 +311,8 @@ select {
 .exp-amount-text { font-size: .92rem; font-weight: 700; letter-spacing: -.3px; color: var(--red); flex-shrink: 0; }
 
 .c-Еда        { background: var(--amber-lt); color: var(--amber); }
-.c-Жильё      { background: var(--blue-lt);  color: var(--blue);  }
+.c-Обязательные_расходы { background: #fef2f2; color: #dc2626; }
+.c-Не_обязательные_расходы { background: #ecfdf5; color: #059669; }
 .c-Транспорт  { background: #fce7f3;          color: #be185d; }
 .c-Подписки   { background: var(--purple-lt); color: var(--purple); }
 .c-Другое     { background: var(--slate-lt);  color: var(--slate); }
@@ -532,7 +533,8 @@ select {
           <label>Категория</label>
           <select id="expCat">
             <option>Еда</option>
-            <option>Жильё</option>
+            <option>Обязательные расходы</option>
+            <option>Не обязательные расходы</option>
             <option>Транспорт</option>
             <option>Подписки</option>
             <option>Другое</option>
@@ -595,8 +597,8 @@ let S = {
 };
 
 const CAT_COLORS = {
-  'Еда':'#d97706', 'Жильё':'#2563eb',
-  'Транспорт':'#ec4899', 'Подписки':'#7c3aed', 'Другое':'#64748b'
+  'Еда':'#d97706', 'Обязательные расходы':'#dc2626',
+  'Не обязательные расходы':'#059669', 'Транспорт':'#ec4899', 'Подписки':'#7c3aed', 'Другое':'#64748b'
 };
 
 /* ═══ BOOT ════════════════════════════════════════ */
@@ -810,13 +812,14 @@ function expRowHTML(e, withDelete) {
   const del = withDelete
     ? `<button class="btn-del" onclick="deleteExpense(${e.id})" aria-label="Удалить">✕</button>`
     : '';
+  const cssClass = esc(e.cat).replace(/\s+/g, '_');
   return `
     <div class="exp-row">
       <div class="exp-dot" style="background:${col}"></div>
       <div class="exp-info">
         <div class="exp-name">${esc(e.name)}</div>
         <div class="exp-meta">
-          <span class="badge c-${esc(e.cat)}">${esc(e.cat)}</span>
+          <span class="badge c-${cssClass}">${esc(e.cat)}</span>
           <span class="exp-date-text">${fmtDate(e.date)}</span>
         </div>
       </div>
