@@ -583,7 +583,7 @@ select {
 /* ═══ SUPABASE ════════════════════════════════════ */
 const supabaseUrl = 'https://laddtgwwirdkziypfhyn.supabase.co'; // Замените на ваш URL
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhZGR0Z3d3aXJka3ppeXBmaHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNDEwOTgsImV4cCI6MjA5MDkxNzA5OH0.VY3Uck1D308KOMw1eQwtLnxZT_tHxAs9kx5ldU-2giM'; // Замените на ваш ключ
-const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
 
 /* ═══ STATE ═══════════════════════════════════════ */
 let S = {
@@ -603,8 +603,8 @@ const CAT_COLORS = {
 async function loadData() {
   setSyncStatus('pending', 'Проверка связи с базой...');
   try {
-    const { data: payments, error: paymentsError } = await supabase.from('payments').select('*');
-    const { data: expenses, error: expensesError } = await supabase.from('expenses').select('*');
+    const { data: payments, error: paymentsError } = await supabaseClient.from('payments').select('*');
+    const { data: expenses, error: expensesError } = await supabaseClient.from('expenses').select('*');
     if (paymentsError || expensesError) throw paymentsError || expensesError;
     S.payments = payments || [];
     S.expenses = expenses || [];
@@ -691,7 +691,7 @@ async function addPayment() {
   if (amount <= 0) { showToast('❗ Укажите сумму выплаты'); return; }
 
   try {
-    const { data, error } = await supabase.from('payments').insert([{ label, amount, date }]).select();
+    const { data, error } = await supabaseClient.from('payments').insert([{ label, amount, date }]).select();
     if (error) throw error;
     S.payments.push(data[0]);
     el('payLabel').value  = '';
@@ -708,7 +708,7 @@ async function addPayment() {
 
 async function deletePayment(id) {
   try {
-    const { error } = await supabase.from('payments').delete().eq('id', id);
+    const { error } = await supabaseClient.from('payments').delete().eq('id', id);
     if (error) throw error;
     S.payments = S.payments.filter(p => p.id !== id);
     refresh();
@@ -775,7 +775,7 @@ async function addExpense() {
   if (amount <= 0){ showToast('❗ Укажите сумму');    return; }
 
   try {
-    const { data, error } = await supabase.from('expenses').insert([{ name, cat, amount, date }]).select();
+    const { data, error } = await supabaseClient.from('expenses').insert([{ name, cat, amount, date }]).select();
     if (error) throw error;
     S.expenses.push(data[0]);
     el('expName').value   = '';
@@ -792,7 +792,7 @@ async function addExpense() {
 
 async function deleteExpense(id) {
   try {
-    const { error } = await supabase.from('expenses').delete().eq('id', id);
+    const { error } = await supabaseClient.from('expenses').delete().eq('id', id);
     if (error) throw error;
     S.expenses = S.expenses.filter(e => e.id !== id);
     refresh();
@@ -940,8 +940,8 @@ function renderChart(totalExp) {
 async function resetAll() {
   if (!confirm('Сбросить все данные?\nЭто действие нельзя отменить.')) return;
   try {
-    await supabase.from('payments').delete().neq('id', 0); // Delete all
-    await supabase.from('expenses').delete().neq('id', 0);
+    await supabaseClient.from('payments').delete().neq('id', 0); // Delete all
+    await supabaseClient.from('expenses').delete().neq('id', 0);
     S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[] };
     ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
     el('workDays').value = '22';
