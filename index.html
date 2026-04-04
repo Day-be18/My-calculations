@@ -487,8 +487,10 @@ select {
         <div class="result-box" id="incomeResult">
           <div class="res-row"><span>Оклад (смены × ставка)</span><strong id="rSalary">—</strong></div>
           <div class="res-row"><span>Премия</span><strong id="rBonus">—</strong></div>
-          <div class="res-row"><span>Итого по плану</span><strong id="rTotal">—</strong></div>
-          <div class="res-row"><span>Средний доход / день</span><strong id="rDay">—</strong></div>
+          <div class="res-row"><span>Итого брутто</span><strong id="rTotal">—</strong></div>
+          <div class="res-row"><span>Налог 13%</span><strong id="rTax">—</strong></div>
+          <div class="res-row"><span>Итого нетто</span><strong id="rNet">—</strong></div>
+          <div class="res-row"><span>Средний доход / день (нетто)</span><strong id="rDay">—</strong></div>
         </div>
       </div>
     </div>
@@ -686,9 +688,11 @@ function calculateIncome() {
 
   const salary = rate * count;
   const total  = salary + bonus;
-  S.plannedIncome = total;
-  S.avgDay = days > 0 ? total / days : 0;
-  S._rate=rate; S._count=count; S._days=days; S._bonus=bonus;
+  const tax    = total * 0.13;
+  const net    = total - tax;
+  S.plannedIncome = net;
+  S.avgDay = days > 0 ? net / days : 0;
+  S._rate=rate; S._count=count; S._days=days; S._bonus=bonus; S._tax=tax; S._net=net;
 
   showIncomeResult();
   refresh(); save();
@@ -699,7 +703,9 @@ function showIncomeResult() {
   el('incomeResult').style.display = 'block';
   el('rSalary').textContent = fmt((S._rate||0) * (S._count||0));
   el('rBonus').textContent  = fmt(S._bonus || 0);
-  el('rTotal').textContent  = fmt(S.plannedIncome);
+  el('rTotal').textContent  = fmt((S._rate||0) * (S._count||0) + (S._bonus || 0));
+  el('rTax').textContent    = fmt(S._tax || 0);
+  el('rNet').textContent    = fmt(S._net || 0);
   el('rDay').textContent    = fmt(S.avgDay);
 }
 
@@ -862,7 +868,7 @@ function renderChart(totalExp) {
 function resetAll() {
   if (!confirm('Сбросить все данные?\nЭто действие нельзя отменить.')) return;
   localStorage.removeItem('finflow3');
-  S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, expenses:[] };
+  S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[] };
   ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
   el('workDays').value = '22';
   el('incomeResult').style.display = 'none';
