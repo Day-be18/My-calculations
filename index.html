@@ -75,6 +75,16 @@ header {
   cursor: pointer; transition: background .2s, color .2s; white-space: nowrap;
 }
 .hdr-reset:hover { background: rgba(255,255,255,.16); color: #fff; }
+.hdr-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+.hdr-sync {
+  font-size:.72rem; color: rgba(255,255,255,.75);
+  padding: 6px 10px; border-radius: 999px;
+  background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+  white-space: nowrap;
+}
+.hdr-sync.ok { color:#b8f3d4; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.30); }
+.hdr-sync.fail { color:#fecdd3; background: rgba(220,38,38,.12); border-color: rgba(220,38,38,.30); }
+.hdr-sync.pending { color: rgba(255,255,255,.85); }
 
 /* BOTTOM NAV */
 .bottom-nav {
@@ -343,7 +353,10 @@ select {
 
 <header>
   <div class="logo">Fin<em>Flow</em></div>
-  <div class="hdr-date" id="hdrDate"></div>
+  <div class="hdr-meta">
+    <div class="hdr-date" id="hdrDate"></div>
+    <div class="hdr-sync pending" id="dbSyncStatus">Проверка связи...</div>
+  </div>
   <button class="hdr-reset" onclick="resetAll()">↺ Сбросить</button>
 </header>
 
@@ -588,18 +601,18 @@ const CAT_COLORS = {
 
 /* ═══ BOOT ════════════════════════════════════════ */
 async function loadData() {
+  setSyncStatus('pending', 'Проверка связи с базой...');
   try {
-    const { data: payments } = await supabase.from('payments').select('*');
-    const { data: expenses } = await supabase.from('expenses').select('*');
+    const { data: payments, error: paymentsError } = await supabase.from('payments').select('*');
+    const { data: expenses, error: expensesError } = await supabase.from('expenses').select('*');
+    if (paymentsError || expensesError) throw paymentsError || expensesError;
     S.payments = payments || [];
     S.expenses = expenses || [];
+    setSyncStatus('ok', 'Синхронизировано с базой');
   } catch (e) {
     console.error('Error loading data:', e);
-    // Fallback to localStorage if Supabase fails
-    try {
-      const raw = localStorage.getItem('finflow3');
-      if (raw) S = { ...S, ...JSON.parse(raw) };
-    } catch(e){}
+    setSyncStatus('fail', 'Нет связи с базой');
+    showToast('❌ Не удалось загрузить данные из базы');
   }
 }
 
@@ -659,8 +672,13 @@ function esc(s) {
   d.textContent = s;
   return d.innerHTML;
 }
-function save() {
-  try { localStorage.setItem('finflow3', JSON.stringify(S)); } catch(e){}
+function setSyncStatus(state, text) {
+  const status = el('dbSyncStatus');
+  if (!status) return;
+  status.textContent = text;
+  status.classList.toggle('ok', state === 'ok');
+  status.classList.toggle('fail', state === 'fail');
+  status.classList.toggle('pending', state === 'pending');
 }
 
 /* ═══ PAYMENTS ════════════════════════════════════
@@ -679,9 +697,11 @@ async function addPayment() {
     el('payLabel').value  = '';
     el('payAmount').value = '';
     refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
     showToast('✅ Выплата записана');
   } catch (e) {
     console.error('Error adding payment:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
     showToast('❌ Ошибка добавления');
   }
 }
@@ -692,9 +712,11 @@ async function deletePayment(id) {
     if (error) throw error;
     S.payments = S.payments.filter(p => p.id !== id);
     refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
     showToast('🗑 Выплата удалена');
   } catch (e) {
     console.error('Error deleting payment:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
     showToast('❌ Ошибка удаления');
   }
 }
@@ -759,9 +781,11 @@ async function addExpense() {
     el('expName').value   = '';
     el('expAmount').value = '';
     refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
     showToast('✅ Расход добавлен');
   } catch (e) {
     console.error('Error adding expense:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
     showToast('❌ Ошибка добавления');
   }
 }
@@ -772,9 +796,11 @@ async function deleteExpense(id) {
     if (error) throw error;
     S.expenses = S.expenses.filter(e => e.id !== id);
     refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
     showToast('🗑 Удалено');
   } catch (e) {
     console.error('Error deleting expense:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
     showToast('❌ Ошибка удаления');
   }
 }
@@ -921,9 +947,11 @@ async function resetAll() {
     el('workDays').value = '22';
     el('incomeResult').style.display = 'none';
     refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
     showToast('🗑 Данные сброшены');
   } catch (e) {
     console.error('Error resetting data:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
     showToast('❌ Ошибка сброса');
   }
 }
