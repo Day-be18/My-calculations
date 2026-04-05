@@ -618,8 +618,6 @@ async function loadData() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-  el('hdrDate').textContent = new Date().toLocaleDateString('ru-RU',
-    {day:'numeric', month:'long', year:'numeric'});
   el('expDate').value = todayISO();
   el('payDate').value = todayISO();
 
