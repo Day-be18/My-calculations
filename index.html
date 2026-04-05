@@ -530,16 +530,20 @@ select {
       <div class="kpi-val r" id="kpiExpenses">0 ₽</div>
       <div class="kpi-sub" id="kpiExpCount">0 записей</div>
     </div>
-    <div class="kpi-card k-saved">
-      <div class="kpi-label">Накоплено</div>
-      <div class="kpi-val b" id="kpiSavings">0 ₽</div>
-      <div class="kpi-sub">Общее количество накоплений</div>
-    </div>
     <div class="kpi-card k-balance">
       <div class="kpi-label">Баланс</div>
       <div class="kpi-val b" id="kpiBalance">0 ₽</div>
       <div class="kpi-sub" id="kpiStatus">—</div>
       <div class="progress-wrap"><div class="progress-bar" id="kpiProgress" style="width:0%"></div></div>
+    </div>
+    <div class="kpi-card k-saved">
+      <div class="kpi-label">Накоплено</div>
+      <div class="kpi-val b" id="kpiSavings">0 ₽</div>
+      <div class="kpi-sub">Общее количество накоплений</div>
+      <div class="plan-progress" id="savingProgressWrap">
+        <div class="plan-bar-bg"><div class="plan-bar" id="savingProgressBar"></div></div>
+        <div class="plan-label" id="savingProgressLabel">Цель: 200 000 ₽</div>
+      </div>
     </div>
   </div>
 
@@ -1275,6 +1279,8 @@ function refresh() {
   const totalSavings  = S.savings.reduce((s,sv) => s + sv.amount, 0);
   const balance       = totalReceived - totalExp;
   const isPos         = balance >= 0;
+  const savingsGoal   = 200000;
+  const savingsPct    = Math.min((totalSavings / savingsGoal) * 100, 100);
 
   /* KPI */
   el('kpiIncome').textContent   = fmt(totalReceived);
@@ -1283,6 +1289,8 @@ function refresh() {
   el('kpiExpenses').textContent = fmt(totalExp);
   el('kpiExpCount').textContent = S.expenses.length + ' записей';
   el('kpiSavings').textContent = fmt(totalSavings);
+  el('savingProgressBar').style.width = savingsPct + '%';
+  el('savingProgressLabel').textContent = `Цель: ${fmt(savingsGoal)} — ${Math.round(savingsPct)}%`;
 
   const bEl = el('kpiBalance');
   bEl.textContent = fmt(Math.abs(balance));
