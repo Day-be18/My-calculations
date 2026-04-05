@@ -745,10 +745,16 @@ async function loadData() {
     const { data: payments, error: paymentsError } = await supabaseClient.from('payments').select('*');
     const { data: expenses, error: expensesError } = await supabaseClient.from('expenses').select('*');
     const { data: savings, error: savingsError } = await supabaseClient.from('savings').select('*');
-    if (paymentsError || expensesError || savingsError) throw paymentsError || expensesError || savingsError;
+    
+    if (paymentsError) throw paymentsError;
+    if (expensesError) throw expensesError;
+    
     S.payments = payments || [];
     S.expenses = expenses || [];
-    S.savings = savings || [];
+    // Only throw if savings table error is not 404 (table not found)
+    if (savingsError && savingsError.code !== 'PGRST205') throw savingsError;
+    S.savings = (savingsError && savingsError.code === 'PGRST205') ? [] : (savings || []);
+    
     setSyncStatus('ok', 'Синхронизировано с базой');
   } catch (e) {
     console.error('Error loading data:', e);
