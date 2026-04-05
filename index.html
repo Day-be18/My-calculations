@@ -286,7 +286,11 @@ select {
 .divider { height: 1px; background: var(--border); margin: 14px 0; }
 
 /* PAYMENT ROWS */
-.pay-list { display: flex; flex-direction: column; gap: 8px; }
+.pay-list { 
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 400px; overflow-y: auto;
+  padding-right: 8px;
+}
 
 .pay-row {
   display: flex; align-items: center; gap: 12px;
@@ -318,7 +322,11 @@ select {
 .pay-total-amt   { font-size: 1.15rem; font-weight: 800; color: var(--green); letter-spacing: -.5px; }
 
 /* EXPENSE ROWS */
-.exp-list { display: flex; flex-direction: column; gap: 7px; }
+.exp-list { 
+  display: flex; flex-direction: column; gap: 7px;
+  max-height: 400px; overflow-y: auto;
+  padding-right: 8px;
+}
 .exp-row {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 13px; border-radius: var(--r-s);
