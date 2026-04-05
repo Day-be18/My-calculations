@@ -44,6 +44,24 @@
   --sh:    0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
   --sh-lg: 0 4px 24px rgba(0,0,0,.10);
   --nav-h: 68px;
+  --chart-text: #111318;
+  --header-bg: #111318;
+  --header-text: #ffffff;
+  --header-text-2: rgba(255,255,255,.75);
+  --header-text-3: rgba(255,255,255,.4);
+  --header-btn-bg: rgba(255,255,255,.08);
+  --header-btn-border: rgba(255,255,255,.12);
+  --header-btn-text: rgba(255,255,255,.65);
+  --logo-em: #10b981;
+  --sync-ok: #b8f3d4;
+  --sync-fail: #fecdd3;
+  --sync-pending: rgba(255,255,255,.85);
+  --btn-secondary-bg: #6b7280;
+  --btn-secondary-hover: #111318;
+  --input-bg: #fafbfc;
+  --row-bg: #fafbfc;
+  --row-hover-bg: #f0f4f8;
+  --pay-date-color: #6b9e86;
 }
 
 /* DARK THEME */
@@ -67,6 +85,24 @@
   --purple-lt: #4c1d95;
   --slate:     #94a3b8;
   --slate-lt:  #1e293b;
+  --chart-text: #e5e7eb;
+  --header-bg: #252b3a;
+  --header-text: #e5e7eb;
+  --header-text-2: rgba(229,231,235,.75);
+  --header-text-3: rgba(229,231,235,.4);
+  --header-btn-bg: rgba(229,231,235,.08);
+  --header-btn-border: rgba(229,231,235,.12);
+  --header-btn-text: rgba(229,231,235,.65);
+  --logo-em: #34d399;
+  --sync-ok: #86efac;
+  --sync-fail: #fca5a5;
+  --sync-pending: rgba(229,231,235,.85);
+  --btn-secondary-bg: #b4b9c4;
+  --btn-secondary-hover: #e5e7eb;
+  --input-bg: #1e293b;
+  --row-bg: #1e293b;
+  --row-hover-bg: #334155;
+  --pay-date-color: #86efac;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -82,40 +118,40 @@ body {
 
 /* HEADER */
 header {
-  height: 60px; background: var(--ink);
+  height: 60px; background: var(--header-bg);
   display: flex; align-items: center; justify-content: space-between;
   padding: 0 20px; position: sticky; top: 0; z-index: 200;
   padding-top: env(safe-area-inset-top);
 }
-.logo { font-size: 1.25rem; font-weight: 800; color: #fff; letter-spacing: -.5px; }
-.logo em { color: var(--green-2); font-style: normal; }
-.hdr-date { font-size: .72rem; color: rgba(255,255,255,.4); display: none; }
+.logo { font-size: 1.25rem; font-weight: 800; color: var(--header-text); letter-spacing: -.5px; }
+.logo em { color: var(--logo-em); font-style: normal; }
+.hdr-date { font-size: .72rem; color: var(--header-text-3); display: none; }
 @media (min-width: 480px) { .hdr-date { display: block; } }
 .hdr-reset {
-  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
-  color: rgba(255,255,255,.65); font-family: var(--ff); font-size: .75rem;
+  background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
+  color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
   font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
   cursor: pointer; transition: background .2s, color .2s; white-space: nowrap;
 }
-.hdr-reset:hover { background: rgba(255,255,255,.16); color: #fff; }
+.hdr-reset:hover { background: rgba(255,255,255,.16); color: var(--header-text); }
 .hdr-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
 .hdr-sync {
-  font-size:.72rem; color: rgba(255,255,255,.75);
+  font-size:.72rem; color: var(--header-text-2);
   padding: 6px 10px; border-radius: 999px;
-  background: rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+  background: var(--header-btn-bg); border:1px solid var(--header-btn-border);
   white-space: nowrap;
 }
-.hdr-sync.ok { color:#b8f3d4; background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.30); }
-.hdr-sync.fail { color:#fecdd3; background: rgba(220,38,38,.12); border-color: rgba(220,38,38,.30); }
-.hdr-sync.pending { color: rgba(255,255,255,.85); }
+.hdr-sync.ok { color: var(--sync-ok); background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.30); }
+.hdr-sync.fail { color: var(--sync-fail); background: rgba(220,38,38,.12); border-color: rgba(220,38,38,.30); }
+.hdr-sync.pending { color: var(--sync-pending); }
 .hdr-theme {
-  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
-  color: rgba(255,255,255,.65); font-family: var(--ff); font-size: .75rem;
+  background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
+  color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
   font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
   cursor: pointer; transition: background .2s, color .2s; white-space: nowrap;
   position: relative; display: flex; align-items: center; gap: 6px;
 }
-.hdr-theme:hover { background: rgba(255,255,255,.16); color: #fff; }
+.hdr-theme:hover { background: rgba(255,255,255,.16); color: var(--header-text); }
 .theme-menu {
   position: absolute; top: 100%; right: 0; margin-top: 8px;
   background: var(--surface); border: 1px solid var(--border);
@@ -246,12 +282,12 @@ input, select {
   height: 44px; padding: 0 12px;
   border: 1.5px solid var(--border); border-radius: var(--r-s);
   font-family: var(--ff); font-size: .88rem; color: var(--ink);
-  background: #fafbfc; outline: none; width: 100%;
+  background: var(--input-bg); outline: none; width: 100%;
   -webkit-appearance: none; appearance: none;
   transition: border-color .18s, box-shadow .18s;
 }
 input:focus, select:focus {
-  border-color: var(--green-2); background: #fff;
+  border-color: var(--green-2); background: var(--surface);
   box-shadow: 0 0 0 3px rgba(16,185,129,.12);
 }
 select {
@@ -272,11 +308,11 @@ select {
 .btn-green:hover  { background: #047857; }
 .btn-green:active { transform: scale(.97); }
 .btn-secondary {
-  background: var(--ink-3); color: #fff; border: none; padding: 10px 20px;
+  background: var(--btn-secondary-bg); color: #fff; border: none; padding: 10px 20px;
   border-radius: var(--r-s); font-family: var(--ff); font-size: .9rem;
   font-weight: 500; cursor: pointer; transition: background .2s;
 }
-.btn-secondary:hover { background: var(--ink); }
+.btn-secondary:hover { background: var(--btn-secondary-hover); }
 .btn-del {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
@@ -353,7 +389,7 @@ select {
 }
 .pay-info { flex: 1; min-width: 0; }
 .pay-label-text { font-size: .86rem; font-weight: 600; }
-.pay-date-text  { font-size: .7rem; color: #6b9e86; margin-top: 1px; }
+.pay-date-text  { font-size: .7rem; color: var(--pay-date-color); margin-top: 1px; }
 .pay-amount-text {
   font-size: .96rem; font-weight: 800; color: var(--green);
   letter-spacing: -.4px; flex-shrink: 0;
@@ -376,10 +412,10 @@ select {
 .exp-row {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 13px; border-radius: var(--r-s);
-  border: 1px solid var(--border); background: #fafbfc;
+  border: 1px solid var(--border); background: var(--row-bg);
   transition: background .15s; animation: fadeSlide .22s ease both;
 }
-.exp-row:hover { background: #f0f4f8; }
+.exp-row:hover { background: var(--row-hover-bg); }
 .exp-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .exp-info { flex: 1; min-width: 0; }
 .exp-name { font-size: .86rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -827,6 +863,12 @@ function setTheme(theme) {
   applyTheme(theme);
   updateThemeUI(theme);
   closeThemeMenu();
+  if (chart) {
+    chart.options.plugins.legend.labels.color = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
+    chart.options.plugins.tooltip.titleColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
+    chart.options.plugins.tooltip.bodyColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
+    chart.update();
+  }
 }
 
 function toggleThemeMenu() {
@@ -1340,9 +1382,9 @@ function renderChart(totalExp) {
     options: {
       responsive:true, maintainAspectRatio:false, cutout:'68%',
       plugins: {
-        legend: { position:'right', labels:{ font:{family:"'Manrope',sans-serif",size:11,weight:'600'}, padding:12, usePointStyle:true, pointStyleWidth:8, color:'#111318' } },
+        legend: { position:'right', labels:{ font:{family:"'Manrope',sans-serif",size:11,weight:'600'}, padding:12, usePointStyle:true, pointStyleWidth:8, color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } },
         tooltip: { callbacks:{ label: ctx => `  ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/(totalExp||1)*100)}%)` },
-          titleFont:{family:"'Manrope',sans-serif",weight:'700'}, bodyFont:{family:"'Manrope',sans-serif"} }
+          titleFont:{family:"'Manrope',sans-serif",weight:'700'}, bodyFont:{family:"'Manrope',sans-serif"}, titleColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim(), bodyColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } }
       }
     }
   });
