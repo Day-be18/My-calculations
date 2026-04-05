@@ -1251,6 +1251,7 @@ function toggleThemeMenu() {
 }
 
 function setTheme(theme) {
+  showToast(`✅ Тема: ${theme === 'light' ? 'Светлая' : theme === 'dark' ? 'Тёмная' : 'Авто'}`);
   currentTheme = theme;
   localStorage.setItem('finflow-theme', theme);
   applyTheme();
@@ -1268,12 +1269,12 @@ function applyTheme() {
     root.style.setProperty('--ink-2', '#64748b');
     root.style.setProperty('--ink-3', '#94a3b8');
   } else if (currentTheme === 'dark') {
-    root.style.setProperty('--bg', '#f4f5f7');
-    root.style.setProperty('--surface', '#ffffff');
-    root.style.setProperty('--border', '#e8eaed');
-    root.style.setProperty('--ink', '#111318');
-    root.style.setProperty('--ink-2', '#6b7280');
-    root.style.setProperty('--ink-3', '#9ca3af');
+    root.style.setProperty('--bg', '#0f172a');
+    root.style.setProperty('--surface', '#111827');
+    root.style.setProperty('--border', '#1f2937');
+    root.style.setProperty('--ink', '#f8fafc');
+    root.style.setProperty('--ink-2', '#cbd5e1');
+    root.style.setProperty('--ink-3', '#94a3b8');
   } else if (currentTheme === 'auto') {
     const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
     applyThemeFromPreference(prefersDark);
