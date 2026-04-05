@@ -196,10 +196,12 @@ main { max-width: 1060px; margin: 0 auto; padding: 22px 14px 0; }
 
 /* KPI GRID */
 .kpi-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
+  display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 10px; margin-bottom: 22px;
 }
+@media (max-width: 860px) { .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 420px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+.kpi-card.k-saved::after { background: var(--purple); }
 
 .kpi-card {
   background: var(--surface); border-radius: var(--r);
@@ -527,6 +529,11 @@ select {
       <div class="kpi-label">Расходы</div>
       <div class="kpi-val r" id="kpiExpenses">0 ₽</div>
       <div class="kpi-sub" id="kpiExpCount">0 записей</div>
+    </div>
+    <div class="kpi-card k-saved">
+      <div class="kpi-label">Накоплено</div>
+      <div class="kpi-val b" id="kpiSavings">0 ₽</div>
+      <div class="kpi-sub">Общее количество накоплений</div>
     </div>
     <div class="kpi-card k-balance">
       <div class="kpi-label">Баланс</div>
@@ -1265,6 +1272,7 @@ function expRowHTML(e, withDelete) {
 function refresh() {
   const totalReceived = S.payments.reduce((s,p) => s + p.amount, 0);
   const totalExp      = S.expenses.reduce((s,e) => s + e.amount, 0);
+  const totalSavings  = S.savings.reduce((s,sv) => s + sv.amount, 0);
   const balance       = totalReceived - totalExp;
   const isPos         = balance >= 0;
 
@@ -1274,6 +1282,7 @@ function refresh() {
     (S.payments.length === 1 ? 'выплата' : S.payments.length < 5 ? 'выплаты' : 'выплат');
   el('kpiExpenses').textContent = fmt(totalExp);
   el('kpiExpCount').textContent = S.expenses.length + ' записей';
+  el('kpiSavings').textContent = fmt(totalSavings);
 
   const bEl = el('kpiBalance');
   bEl.textContent = fmt(Math.abs(balance));
@@ -1317,7 +1326,6 @@ function refresh() {
   }
 
   /* SAVINGS */
-  const totalSavings = S.savings.reduce((s,sv) => s + sv.amount, 0);
   const sortedSav = [...S.savings].sort((a,b) => b.id - a.id);
   const chrono2 = [...S.savings].sort((a,b) => a.id - b.id);
   const idxMap2 = {}; chrono2.forEach((s,i) => { idxMap2[s.id] = i+1; });
