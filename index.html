@@ -507,6 +507,63 @@ select {
     </div>
   </div>
 
+  <!-- Накопленные средства -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-g">🏦</div>
+      <div>
+        <div class="card-title">Накопленные средства</div>
+        <div class="card-sub">Отслеживание сбережений</div>
+      </div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('savFormBody','savFormArrow')">
+        <span class="collapse-arrow open" id="savFormArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body open" id="savFormBody">
+      <div class="card-body">
+        <div class="fields">
+          <div class="field span2">
+            <label>Название</label>
+            <input type="text" id="savLabel" placeholder="Депозит, инвестиция…" />
+          </div>
+          <div class="field">
+            <label>Сумма (₽)</label>
+            <input type="number" id="savAmount" placeholder="0" min="0" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>Дата</label>
+            <input type="date" id="savDate" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="addSavings()">+ Добавить накопление</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Список накоплений -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-g">💎</div>
+      <div class="card-title">История накоплений</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('savListBody','savListArrow')">
+        <span class="collapse-arrow open" id="savListArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body open" id="savListBody">
+      <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+        <div id="savList" class="pay-list"></div>
+        <div id="savEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">💎</div>
+          <div class="empty-text">Накоплений ещё нет. Добавьте первое!</div>
+        </div>
+        <div class="pay-total-row" id="savTotalRow" style="display:none">
+          <span class="pay-total-label">Итого накоплено</span>
+          <span class="pay-total-amt" id="savTotalAmt">0 ₽</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Список выплат -->
   <div class="card">
     <div class="card-hdr">
@@ -672,7 +729,8 @@ let S = {
   plannedIncome: 0,   // from salary calculator
   avgDay: 0,
   _rate:0, _count:0, _days:22, _bonus:0,
-  expenses: []        // { id, name, cat, amount, date }
+  expenses: [],       // { id, name, cat, amount, date }
+  savings: []         // { id, label, amount, date }
 };
 
 const CAT_COLORS = {
@@ -686,9 +744,11 @@ async function loadData() {
   try {
     const { data: payments, error: paymentsError } = await supabaseClient.from('payments').select('*');
     const { data: expenses, error: expensesError } = await supabaseClient.from('expenses').select('*');
-    if (paymentsError || expensesError) throw paymentsError || expensesError;
+    const { data: savings, error: savingsError } = await supabaseClient.from('savings').select('*');
+    if (paymentsError || expensesError || savingsError) throw paymentsError || expensesError || savingsError;
     S.payments = payments || [];
     S.expenses = expenses || [];
+    S.savings = savings || [];
     setSyncStatus('ok', 'Синхронизировано с базой');
   } catch (e) {
     console.error('Error loading data:', e);
@@ -767,6 +827,108 @@ function setSyncStatus(state, text) {
   status.classList.toggle('ok', state === 'ok');
   status.classList.toggle('fail', state === 'fail');
   status.classList.toggle('pending', state === 'pending');
+}
+
+/* ═══ SAVINGS ═════════════════════════════════════
+   Накопленные средства                            */
+async function addSavings() {
+  const label  = el('savLabel').value.trim() || 'Накопление';
+  const amount = parseFloat(el('savAmount').value) || 0;
+  const date   = el('savDate').value;
+
+  if (amount <= 0) { showToast('❗ Укажите сумму накопления'); return; }
+
+  try {
+    const { data, error } = await supabaseClient.from('savings').insert([{ label, amount, date }]).select();
+    if (error) throw error;
+    S.savings.push(data[0]);
+    el('savLabel').value  = '';
+    el('savAmount').value = '';
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    showToast('✅ Накопление записано');
+  } catch (e) {
+    console.error('Error adding savings:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка добавления');
+  }
+}
+
+async function deleteSavings(id) {
+  try {
+    const { error } = await supabaseClient.from('savings').delete().eq('id', id);
+    if (error) throw error;
+    S.savings = S.savings.filter(s => s.id !== id);
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    showToast('🗑 Накопление удалено');
+  } catch (e) {
+    console.error('Error deleting savings:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка удаления');
+  }
+}
+
+function savRowHTML(s, num) {
+  return `
+    <div class="pay-row">
+      <div class="pay-num">${num}</div>
+      <div class="pay-info">
+        <div class="pay-label-text">${esc(s.label)}</div>
+        <div class="pay-date-text">${fmtDate(s.date)}</div>
+      </div>
+      <div class="pay-amount-text">+${fmt(s.amount)}</div>
+      <div class="pay-actions">
+        <button class="btn-edit" onclick="editSavings(${s.id})" aria-label="Редактировать">✏</button>
+        <button class="btn-del" onclick="deleteSavings(${s.id})" aria-label="Удалить">✕</button>
+      </div>
+    </div>`;
+}
+
+function editSavings(id) {
+  const savings = S.savings.find(s => s.id === id);
+  if (!savings) return;
+
+  editingSavingsId = id;
+  el('editSavLabel').value = savings.label;
+  el('editSavAmount').value = savings.amount;
+  el('editSavDate').value = savings.date;
+  el('editSavingsModal').classList.add('show');
+}
+
+async function saveSavingsEdit() {
+  const label = el('editSavLabel').value.trim() || 'Накопление';
+  const amount = parseFloat(el('editSavAmount').value) || 0;
+  const date = el('editSavDate').value;
+
+  if (amount <= 0) {
+    showToast('❗ Укажите сумму накопления');
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('savings')
+      .update({ label, amount, date })
+      .eq('id', editingSavingsId);
+    if (error) throw error;
+
+    const savings = S.savings.find(s => s.id === editingSavingsId);
+    if (savings) {
+      savings.label = label;
+      savings.amount = amount;
+      savings.date = date;
+    }
+
+    closeModal('editSavingsModal');
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    showToast('✅ Накопление обновлено');
+  } catch (e) {
+    console.error('Error updating savings:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка обновления');
+  }
 }
 
 /* ═══ PAYMENTS ════════════════════════════════════
@@ -975,6 +1137,24 @@ function refresh() {
     el('payTotalAmt').textContent = fmt(totalReceived);
   }
 
+  /* SAVINGS */
+  const totalSavings = S.savings.reduce((s,sv) => s + sv.amount, 0);
+  const sortedSav = [...S.savings].sort((a,b) => b.id - a.id);
+  const chrono2 = [...S.savings].sort((a,b) => a.id - b.id);
+  const idxMap2 = {}; chrono2.forEach((s,i) => { idxMap2[s.id] = i+1; });
+
+  const sList = el('savList');
+  const sEmpty = el('savEmpty');
+  const sTotal = el('savTotalRow');
+  if (sortedSav.length === 0) {
+    sList.innerHTML = ''; sEmpty.style.display = 'block'; sTotal.style.display = 'none';
+  } else {
+    sEmpty.style.display = 'none';
+    sList.innerHTML = sortedSav.map(s => savRowHTML(s, idxMap2[s.id])).join('');
+    sTotal.style.display = 'flex';
+    el('savTotalAmt').textContent = fmt(totalSavings);
+  }
+
   /* RECENT EXPENSES (overview, last 5) */
   const sortedExp = [...S.expenses].sort((a,b) => b.id - a.id);
   const rList     = el('recentList');
@@ -1037,7 +1217,8 @@ async function resetAll() {
   try {
     await supabaseClient.from('payments').delete().neq('id', 0); // Delete all
     await supabaseClient.from('expenses').delete().neq('id', 0);
-    S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[] };
+    await supabaseClient.from('savings').delete().neq('id', 0);
+    S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[], savings:[] };
     ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
     el('workDays').value = '22';
     el('incomeResult').style.display = 'none';
@@ -1054,6 +1235,7 @@ async function resetAll() {
 /* ═══ EDITING ═════════════════════════════════════ */
 let editingPaymentId = null;
 let editingExpenseId = null;
+let editingSavingsId = null;
 
 function closeModal(modalId) {
   el(modalId).classList.remove('show');
@@ -1267,6 +1449,35 @@ if ('serviceWorker' in navigator) {
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal('editExpenseModal')">Отмена</button>
       <button class="btn btn-green" onclick="saveExpenseEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="editSavingsModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Редактировать накопление</div>
+      <button class="modal-close" onclick="closeModal('editSavingsModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Название</label>
+          <input type="text" id="editSavLabel" placeholder="Накопление" />
+        </div>
+        <div class="field">
+          <label>Сумма (₽)</label>
+          <input type="number" id="editSavAmount" placeholder="0" min="0" inputmode="decimal" />
+        </div>
+        <div class="field span2">
+          <label>Дата</label>
+          <input type="date" id="editSavDate" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editSavingsModal')">Отмена</button>
+      <button class="btn btn-green" onclick="saveSavingsEdit()">Сохранить</button>
     </div>
   </div>
 </div>
