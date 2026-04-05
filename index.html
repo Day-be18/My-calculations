@@ -225,6 +225,12 @@ select {
 .btn-green { background: var(--green); color: #fff; }
 .btn-green:hover  { background: #047857; }
 .btn-green:active { transform: scale(.97); }
+.btn-secondary {
+  background: var(--ink-3); color: #fff; border: none; padding: 10px 20px;
+  border-radius: var(--r-s); font-family: var(--ff); font-size: .9rem;
+  font-weight: 500; cursor: pointer; transition: background .2s;
+}
+.btn-secondary:hover { background: var(--ink); }
 .btn-del {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
@@ -233,6 +239,16 @@ select {
   -webkit-tap-highlight-color: transparent;
 }
 .btn-del:hover { background: var(--red-lt); color: var(--red); }
+.btn-edit {
+  background: none; border: none; height: 32px; width: 32px; padding: 0;
+  border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s, color .15s; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn-edit:hover { background: var(--blue-lt); color: var(--blue); }
+.pay-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.exp-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
 /* SALARY RESULT BOX */
 .result-box {
@@ -348,6 +364,29 @@ select {
 .kpi-card:nth-child(1) { animation-delay:.04s; }
 .kpi-card:nth-child(2) { animation-delay:.08s; }
 .kpi-card:nth-child(3) { animation-delay:.12s; }
+
+/* MODALS */
+.modal {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.5); display: none; z-index: 1000;
+  align-items: center; justify-content: center; padding: 20px;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: var(--surface); border-radius: var(--r); padding: 24px;
+  max-width: 400px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--sh-lg);
+}
+.modal-header { margin-bottom: 20px; }
+.modal-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; }
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: none; border: none; font-size: 1.5rem; cursor: pointer;
+  color: var(--ink-3); padding: 4px;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-body .fields { margin-bottom: 20px; }
+.modal-footer { display: flex; gap: 12px; justify-content: flex-end; }
 </style>
 </head>
 <body>
@@ -729,7 +768,10 @@ function payRowHTML(p, num) {
         <div class="pay-date-text">${fmtDate(p.date)}</div>
       </div>
       <div class="pay-amount-text">+${fmt(p.amount)}</div>
-      <button class="btn-del" onclick="deletePayment(${p.id})" aria-label="Удалить">✕</button>
+      <div class="pay-actions">
+        <button class="btn-edit" onclick="editPayment(${p.id})" aria-label="Редактировать">✏</button>
+        <button class="btn-del" onclick="deletePayment(${p.id})" aria-label="Удалить">✕</button>
+      </div>
     </div>`;
 }
 
@@ -807,7 +849,10 @@ async function deleteExpense(id) {
 function expRowHTML(e, withDelete) {
   const col = CAT_COLORS[e.cat] || '#64748b';
   const del = withDelete
-    ? `<button class="btn-del" onclick="deleteExpense(${e.id})" aria-label="Удалить">✕</button>`
+    ? `<div class="exp-actions">
+        <button class="btn-edit" onclick="editExpense(${e.id})" aria-label="Редактировать">✏</button>
+        <button class="btn-del" onclick="deleteExpense(${e.id})" aria-label="Удалить">✕</button>
+      </div>`
     : '';
   const cssClass = esc(e.cat).replace(/\s+/g, '_');
   return `
@@ -956,6 +1001,129 @@ async function resetAll() {
   }
 }
 
+/* ═══ EDITING ═════════════════════════════════════ */
+let editingPaymentId = null;
+let editingExpenseId = null;
+
+function closeModal(modalId) {
+  el(modalId).classList.remove('show');
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal')) {
+    e.target.classList.remove('show');
+  }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.show').forEach(modal => {
+      modal.classList.remove('show');
+    });
+  }
+});
+
+function editPayment(id) {
+  const payment = S.payments.find(p => p.id === id);
+  if (!payment) return;
+
+  editingPaymentId = id;
+  el('editPayLabel').value = payment.label;
+  el('editPayAmount').value = payment.amount;
+  el('editPayDate').value = payment.date;
+  el('editPaymentModal').classList.add('show');
+}
+
+async function savePaymentEdit() {
+  const label = el('editPayLabel').value.trim() || 'Выплата';
+  const amount = parseFloat(el('editPayAmount').value) || 0;
+  const date = el('editPayDate').value;
+
+  if (amount <= 0) {
+    showToast('❗ Укажите сумму выплаты');
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('payments')
+      .update({ label, amount, date })
+      .eq('id', editingPaymentId);
+    if (error) throw error;
+
+    const payment = S.payments.find(p => p.id === editingPaymentId);
+    if (payment) {
+      payment.label = label;
+      payment.amount = amount;
+      payment.date = date;
+    }
+
+    closeModal('editPaymentModal');
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    showToast('✅ Выплата обновлена');
+  } catch (e) {
+    console.error('Error updating payment:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка обновления');
+  }
+}
+
+function editExpense(id) {
+  const expense = S.expenses.find(e => e.id === id);
+  if (!expense) return;
+
+  editingExpenseId = id;
+  el('editExpName').value = expense.name;
+  el('editExpCat').value = expense.cat;
+  el('editExpAmount').value = expense.amount;
+  el('editExpDate').value = expense.date;
+  el('editExpenseModal').classList.add('show');
+}
+
+async function saveExpenseEdit() {
+  const name = el('editExpName').value.trim();
+  const cat = el('editExpCat').value;
+  const amount = parseFloat(el('editExpAmount').value) || 0;
+  const date = el('editExpDate').value;
+
+  if (!name) {
+    showToast('❗ Введите название');
+    return;
+  }
+  if (amount <= 0) {
+    showToast('❗ Укажите сумму');
+    return;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('expenses')
+      .update({ name, cat, amount, date })
+      .eq('id', editingExpenseId);
+    if (error) throw error;
+
+    const expense = S.expenses.find(e => e.id === editingExpenseId);
+    if (expense) {
+      expense.name = name;
+      expense.cat = cat;
+      expense.amount = amount;
+      expense.date = date;
+    }
+
+    closeModal('editExpenseModal');
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    showToast('✅ Расход обновлен');
+  } catch (e) {
+    console.error('Error updating expense:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка обновления');
+  }
+}
+
 /* ═══ TOAST ═══════════════════════════════════════ */
 let toastTimer = null;
 function showToast(msg) {
@@ -982,5 +1150,76 @@ if ('serviceWorker' in navigator) {
   ).catch(()=>{});
 }
 </script>
+
+<!-- MODALS -->
+<div class="modal" id="editPaymentModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Редактировать доход</div>
+      <button class="modal-close" onclick="closeModal('editPaymentModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Название</label>
+          <input type="text" id="editPayLabel" placeholder="Выплата" />
+        </div>
+        <div class="field">
+          <label>Сумма (₽)</label>
+          <input type="number" id="editPayAmount" placeholder="0" min="0" inputmode="decimal" />
+        </div>
+        <div class="field span2">
+          <label>Дата</label>
+          <input type="date" id="editPayDate" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editPaymentModal')">Отмена</button>
+      <button class="btn btn-green" onclick="savePaymentEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="editExpenseModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Редактировать расход</div>
+      <button class="modal-close" onclick="closeModal('editExpenseModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Название</label>
+          <input type="text" id="editExpName" placeholder="Расход" />
+        </div>
+        <div class="field">
+          <label>Категория</label>
+          <select id="editExpCat">
+            <option>Еда</option>
+            <option>Обязательные расходы</option>
+            <option>Не обязательные расходы</option>
+            <option>Транспорт</option>
+            <option>Подписки</option>
+            <option>Другое</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Сумма (₽)</label>
+          <input type="number" id="editExpAmount" placeholder="0" min="0" inputmode="decimal" />
+        </div>
+        <div class="field span2">
+          <label>Дата</label>
+          <input type="date" id="editExpDate" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editExpenseModal')">Отмена</button>
+      <button class="btn btn-green" onclick="saveExpenseEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
