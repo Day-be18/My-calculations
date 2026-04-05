@@ -1376,15 +1376,32 @@ function renderChart(totalExp) {
   const data   = Object.values(agg);
   const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
   if (chart) chart.destroy();
+  const chartTextColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
   chart = new Chart(canvas, {
     type: 'doughnut',
     data: { labels, datasets:[{ data, backgroundColor:colors, borderWidth:4, borderColor:'#fff', hoverOffset:10 }] },
     options: {
       responsive:true, maintainAspectRatio:false, cutout:'68%',
       plugins: {
-        legend: { position:'right', labels:{ font:{family:"'Manrope',sans-serif",size:11,weight:'600'}, padding:12, usePointStyle:true, pointStyleWidth:8, color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } },
-        tooltip: { callbacks:{ label: ctx => `  ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/(totalExp||1)*100)}%)` },
-          titleFont:{family:"'Manrope',sans-serif",weight:'700'}, bodyFont:{family:"'Manrope',sans-serif"}, titleColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim(), bodyColor: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } }
+        legend: {
+          position:'right',
+          labels: {
+            font: { family:"'Manrope',sans-serif", size:11, weight:'600' },
+            padding:12,
+            usePointStyle:true,
+            pointStyleWidth:8,
+            color: chartTextColor
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `  ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/(totalExp||1)*100)}%)`
+          },
+          titleFont: { family:"'Manrope',sans-serif", weight:'700' },
+          bodyFont: { family:"'Manrope',sans-serif" },
+          titleColor: chartTextColor,
+          bodyColor: chartTextColor
+        }
       }
     }
   });
