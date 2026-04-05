@@ -157,7 +157,13 @@ main { max-width: 1060px; margin: 0 auto; padding: 22px 14px 0; }
 .section-title {
   font-size: .66rem; font-weight: 700; letter-spacing: 1.2px;
   text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; padding-left: 2px;
+  display: flex; align-items: center; justify-content: space-between;
 }
+.collapse-toggle {
+  background: none; border: none; padding: 4px; cursor: pointer;
+  color: var(--ink-3); border-radius: 4px; transition: background .15s;
+}
+.collapse-toggle:hover { background: rgba(0,0,0,.05); }
 
 /* CARD */
 .card {
@@ -440,13 +446,20 @@ select {
     </div>
   </div>
 
-  <div class="section-title">Последние расходы</div>
-  <div class="card">
-    <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
-      <div id="recentList" class="exp-list"></div>
-      <div id="recentEmpty" class="empty-state" style="display:none">
-        <div class="empty-icon">🧾</div>
-        <div class="empty-text">Расходов пока нет</div>
+  <div class="section-title">
+    Последние расходы
+    <button class="collapse-toggle" onclick="toggleRecent()">
+      <span class="collapse-arrow" id="recentArrow">▼</span>
+    </button>
+  </div>
+  <div class="collapse-body closed" id="recentBody">
+    <div class="card">
+      <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
+        <div id="recentList" class="exp-list"></div>
+        <div id="recentEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">🧾</div>
+          <div class="empty-text">Расходов пока нет</div>
+        </div>
       </div>
     </div>
   </div>
@@ -457,49 +470,56 @@ select {
 <div id="tab-income" class="tab-section">
 
   <!-- Форма добавления выплаты -->
-  <div class="section-title">Журнал выплат</div>
-  <div class="card">
-    <div class="card-hdr">
-      <div class="card-ico ico-g">💰</div>
-      <div>
-        <div class="card-title">Записать полученную выплату</div>
-        <div class="card-sub">Аванс, зарплата, доплата — любая сумма</div>
-      </div>
-    </div>
-    <div class="card-body">
-      <div class="fields">
-        <div class="field span2">
-          <label>Название / комментарий</label>
-          <input type="text" id="payLabel" placeholder="Аванс, зарплата, доплата…" />
-        </div>
-        <div class="field">
-          <label>Сумма (₽)</label>
-          <input type="number" id="payAmount" placeholder="0" min="0" inputmode="decimal" />
-        </div>
-        <div class="field">
-          <label>Дата получения</label>
-          <input type="date" id="payDate" />
-        </div>
-      </div>
-      <button class="btn btn-green btn-full" onclick="addPayment()">+ Записать выплату</button>
-    </div>
+  <div class="section-title">
+    Журнал выплат
+    <button class="collapse-toggle" onclick="togglePayments()">
+      <span class="collapse-arrow" id="paymentsArrow">▼</span>
+    </button>
   </div>
-
-  <!-- Список выплат -->
-  <div class="card">
-    <div class="card-hdr">
-      <div class="card-ico ico-g">📋</div>
-      <div class="card-title">Все выплаты</div>
-    </div>
-    <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
-      <div id="payList" class="pay-list"></div>
-      <div id="payEmpty" class="empty-state" style="display:none">
-        <div class="empty-icon">💸</div>
-        <div class="empty-text">Выплат ещё нет. Запишите первую!</div>
+  <div class="collapse-body closed" id="paymentsBody">
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico ico-g">💰</div>
+        <div>
+          <div class="card-title">Записать полученную выплату</div>
+          <div class="card-sub">Аванс, зарплата, доплата — любая сумма</div>
+        </div>
       </div>
-      <div class="pay-total-row" id="payTotalRow" style="display:none">
-        <span class="pay-total-label">Итого получено</span>
-        <span class="pay-total-amt" id="payTotalAmt">0 ₽</span>
+      <div class="card-body">
+        <div class="fields">
+          <div class="field span2">
+            <label>Название / комментарий</label>
+            <input type="text" id="payLabel" placeholder="Аванс, зарплата, доплата…" />
+          </div>
+          <div class="field">
+            <label>Сумма (₽)</label>
+            <input type="number" id="payAmount" placeholder="0" min="0" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>Дата получения</label>
+            <input type="date" id="payDate" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="addPayment()">+ Записать выплату</button>
+      </div>
+    </div>
+
+    <!-- Список выплат -->
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico ico-g">📋</div>
+        <div class="card-title">Все выплаты</div>
+      </div>
+      <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+        <div id="payList" class="pay-list"></div>
+        <div id="payEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">💸</div>
+          <div class="empty-text">Выплат ещё нет. Запишите первую!</div>
+        </div>
+        <div class="pay-total-row" id="payTotalRow" style="display:none">
+          <span class="pay-total-label">Итого получено</span>
+          <span class="pay-total-amt" id="payTotalAmt">0 ₽</span>
+        </div>
       </div>
     </div>
   </div>
@@ -555,49 +575,63 @@ select {
 <!-- ══════ TAB: РАСХОДЫ ══════ -->
 <div id="tab-expenses" class="tab-section">
 
-  <div class="section-title">Новый расход</div>
-  <div class="card">
-    <div class="card-hdr">
-      <div class="card-ico ico-r">➕</div>
-      <div class="card-title">Добавить расход</div>
-    </div>
-    <div class="card-body">
-      <div class="fields">
-        <div class="field span2">
-          <label>Название</label>
-          <input type="text" id="expName" placeholder="Продукты, аренда, кафе…" />
-        </div>
-        <div class="field">
-          <label>Категория</label>
-          <select id="expCat">
-            <option>Еда</option>
-            <option>Обязательные расходы</option>
-            <option>Не обязательные расходы</option>
-            <option>Транспорт</option>
-            <option>Подписки</option>
-            <option>Другое</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Сумма (₽)</label>
-          <input type="number" id="expAmount" placeholder="0" min="0" inputmode="decimal" />
-        </div>
-        <div class="field span2">
-          <label>Дата</label>
-          <input type="date" id="expDate" />
-        </div>
+  <div class="section-title">
+    Новый расход
+    <button class="collapse-toggle" onclick="toggleNewExpense()">
+      <span class="collapse-arrow" id="newExpenseArrow">▼</span>
+    </button>
+  </div>
+  <div class="collapse-body closed" id="newExpenseBody">
+    <div class="card">
+      <div class="card-hdr">
+        <div class="card-ico ico-r">➕</div>
+        <div class="card-title">Добавить расход</div>
       </div>
-      <button class="btn btn-green btn-full" onclick="addExpense()">+ Добавить</button>
+      <div class="card-body">
+        <div class="fields">
+          <div class="field span2">
+            <label>Название</label>
+            <input type="text" id="expName" placeholder="Продукты, аренда, кафе…" />
+          </div>
+          <div class="field">
+            <label>Категория</label>
+            <select id="expCat">
+              <option>Еда</option>
+              <option>Обязательные расходы</option>
+              <option>Не обязательные расходы</option>
+              <option>Транспорт</option>
+              <option>Подписки</option>
+              <option>Другое</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Сумма (₽)</label>
+            <input type="number" id="expAmount" placeholder="0" min="0" inputmode="decimal" />
+          </div>
+          <div class="field span2">
+            <label>Дата</label>
+            <input type="date" id="expDate" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="addExpense()">+ Добавить</button>
+      </div>
     </div>
   </div>
 
-  <div class="section-title">Все расходы</div>
-  <div class="card">
-    <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
-      <div id="fullList" class="exp-list"></div>
-      <div id="fullEmpty" class="empty-state" style="display:none">
-        <div class="empty-icon">🧾</div>
-        <div class="empty-text">Расходов пока нет. Добавьте первый!</div>
+  <div class="section-title">
+    Все расходы
+    <button class="collapse-toggle" onclick="toggleAllExpenses()">
+      <span class="collapse-arrow" id="allExpensesArrow">▼</span>
+    </button>
+  </div>
+  <div class="collapse-body closed" id="allExpensesBody">
+    <div class="card">
+      <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
+        <div id="fullList" class="exp-list"></div>
+        <div id="fullEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">🧾</div>
+          <div class="empty-text">Расходов пока нет. Добавьте первый!</div>
+        </div>
       </div>
     </div>
   </div>
@@ -694,6 +728,35 @@ function toggleCalc() {
   calcOpen = !calcOpen;
   el('calcBody').className   = 'collapse-body ' + (calcOpen ? 'open' : 'closed');
   el('calcArrow').className  = 'collapse-arrow ' + (calcOpen ? 'open' : '');
+}
+
+/* ═══ COLLAPSE OTHER SECTIONS ═════════════════════ */
+let recentOpen = false;
+function toggleRecent() {
+  recentOpen = !recentOpen;
+  el('recentBody').className   = 'collapse-body ' + (recentOpen ? 'open' : 'closed');
+  el('recentArrow').className  = 'collapse-arrow ' + (recentOpen ? 'open' : '');
+}
+
+let paymentsOpen = false;
+function togglePayments() {
+  paymentsOpen = !paymentsOpen;
+  el('paymentsBody').className   = 'collapse-body ' + (paymentsOpen ? 'open' : 'closed');
+  el('paymentsArrow').className  = 'collapse-arrow ' + (paymentsOpen ? 'open' : '');
+}
+
+let newExpenseOpen = false;
+function toggleNewExpense() {
+  newExpenseOpen = !newExpenseOpen;
+  el('newExpenseBody').className   = 'collapse-body ' + (newExpenseOpen ? 'open' : 'closed');
+  el('newExpenseArrow').className  = 'collapse-arrow ' + (newExpenseOpen ? 'open' : '');
+}
+
+let allExpensesOpen = false;
+function toggleAllExpenses() {
+  allExpensesOpen = !allExpensesOpen;
+  el('allExpensesBody').className   = 'collapse-body ' + (allExpensesOpen ? 'open' : 'closed');
+  el('allExpensesArrow').className  = 'collapse-arrow ' + (allExpensesOpen ? 'open' : '');
 }
 
 /* ═══ UTILS ══════════════════════════════════════ */
