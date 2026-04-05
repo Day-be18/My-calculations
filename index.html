@@ -74,7 +74,17 @@ header {
   font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
   cursor: pointer; transition: background .2s, color .2s; white-space: nowrap;
 }
-.hdr-reset:hover { background: rgba(255,255,255,.16); color: #fff; }
+.hdr-reset:hover { background: rgba(255,255,255,.16); color: #fff; transform: scale(1.05); }
+.hdr-reset:active { transform: scale(.95); }
+.hdr-actions { display: flex; gap: 8px; }
+.hdr-settings {
+  background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12);
+  color: rgba(255,255,255,.65); font-family: var(--ff); font-size: .75rem;
+  font-weight: 500; padding: 6px 10px; border-radius: var(--r-s);
+  cursor: pointer; transition: all .18s cubic-bezier(0.4, 0, 0.2, 1); white-space: nowrap;
+}
+.hdr-settings:hover { background: rgba(255,255,255,.16); color: #fff; transform: scale(1.05); }
+.hdr-settings:active { transform: scale(.95); }
 .hdr-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
 .hdr-sync {
   font-size:.72rem; color: rgba(255,255,255,.75);
@@ -161,15 +171,20 @@ main { max-width: 1060px; margin: 0 auto; padding: 22px 14px 0; }
 }
 .collapse-toggle {
   background: none; border: none; padding: 4px; cursor: pointer;
-  color: var(--ink-3); border-radius: 4px; transition: background .15s;
+  color: var(--ink-3); border-radius: 4px; transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.collapse-toggle:hover { background: rgba(0,0,0,.05); }
+.collapse-toggle:hover { background: rgba(0,0,0,.05); color: var(--ink); transform: scale(1.05); }
+.collapse-toggle:active { transform: scale(.95); }
 
 /* CARD */
 .card {
   background: var(--surface); border-radius: var(--r);
   box-shadow: var(--sh); margin-bottom: 14px; overflow: hidden;
-  animation: fadeUp .3s ease both;
+  animation: fadeUp .3s ease both; transition: transform .2s ease, box-shadow .2s ease;
+}
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0,0,0,.15);
 }
 .card-hdr {
   display: flex; align-items: center; gap: 10px;
@@ -224,19 +239,29 @@ select {
   display: inline-flex; align-items: center; justify-content: center;
   gap: 6px; height: 44px; padding: 0 20px; border: none;
   border-radius: var(--r-s); font-family: var(--ff); font-size: .87rem;
-  font-weight: 600; cursor: pointer; transition: all .18s;
+  font-weight: 600; cursor: pointer; transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
   -webkit-tap-highlight-color: transparent; white-space: nowrap;
+  position: relative; overflow: hidden;
 }
+.btn::before {
+  content: ''; position: absolute; top: 0; left: -100%;
+  width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
+  transition: left .5s;
+}
+.btn:hover::before { left: 100%; }
+.btn:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.15); }
+.btn:active { transform: translateY(0) scale(.98); }
 .btn-full { width: 100%; }
 .btn-green { background: var(--green); color: #fff; }
-.btn-green:hover  { background: #047857; }
-.btn-green:active { transform: scale(.97); }
+.btn-green:hover  { background: #047857; box-shadow: 0 4px 12px rgba(5, 150, 105, .3); }
+.btn-green:active { transform: scale(.98); }
 .btn-secondary {
   background: var(--ink-3); color: #fff; border: none; padding: 10px 20px;
   border-radius: var(--r-s); font-family: var(--ff); font-size: .9rem;
-  font-weight: 500; cursor: pointer; transition: background .2s;
+  font-weight: 500; cursor: pointer; transition: all .18s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.btn-secondary:hover { background: var(--ink); }
+.btn-secondary:hover { background: var(--ink); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.2); }
+.btn-secondary:active { transform: translateY(0) scale(.98); }
 .btn-del {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
@@ -249,10 +274,11 @@ select {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: background .15s, color .15s; flex-shrink: 0;
+  transition: all .18s cubic-bezier(0.4, 0, 0.2, 1); flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
 }
-.btn-edit:hover { background: var(--blue-lt); color: var(--blue); }
+.btn-edit:hover { background: var(--blue-lt); color: var(--blue); transform: scale(1.1); }
+.btn-edit:active { transform: scale(.95); }
 .pay-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .exp-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
@@ -393,6 +419,31 @@ select {
 .modal-close:hover { color: var(--ink); }
 .modal-body .fields { margin-bottom: 20px; }
 .modal-footer { display: flex; gap: 12px; justify-content: flex-end; }
+
+/* THEME MENU */
+.theme-menu {
+  position: absolute; top: 100%; right: 0; margin-top: 8px;
+  background: var(--surface); border-radius: var(--r); padding: 8px;
+  box-shadow: var(--sh-lg); border: 1px solid var(--border);
+  display: none; z-index: 100; min-width: 140px;
+}
+.theme-menu.show { display: block; }
+.theme-option {
+  display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+  border-radius: 6px; cursor: pointer; transition: background .15s;
+  font-size: .85rem;
+}
+.theme-option:hover { background: var(--bg); }
+.theme-option.active { background: var(--green-lt); color: var(--green); }
+.theme-preview {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--border);
+}
+.theme-preview.light { background: #ffffff; }
+.theme-preview.dark { background: #111318; }
+.theme-preview.auto { background: linear-gradient(45deg, #ffffff 50%, #111318 50%); }
+</style>
+</head>
 </style>
 </head>
 <body>
@@ -402,7 +453,10 @@ select {
   <div class="hdr-meta">
     <div class="hdr-sync pending" id="dbSyncStatus">Проверка связи...</div>
   </div>
-  <button class="hdr-reset" onclick="resetAll()">↺ Сбросить</button>
+  <div class="hdr-actions">
+    <button class="hdr-settings" onclick="toggleThemeMenu()" title="Настройки">⚙</button>
+    <button class="hdr-reset" onclick="resetAll()">↺ Сбросить</button>
+  </div>
 </header>
 
 <main>
@@ -524,52 +578,6 @@ select {
     </div>
   </div>
 
-  <!-- Калькулятор (свёрнут) -->
-  <div class="card">
-    <div class="card-body">
-      <button class="collapse-toggle" onclick="toggleCalc()">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div class="card-ico ico-a" style="flex-shrink:0">🧮</div>
-          <div style="text-align:left">
-            <div class="card-title">Калькулятор зарплаты</div>
-            <div class="card-sub">Рассчитать ожидаемый доход</div>
-          </div>
-        </div>
-        <span class="collapse-arrow" id="calcArrow">▼</span>
-      </button>
-      <div class="collapse-body closed" id="calcBody">
-        <div class="divider"></div>
-        <div class="fields">
-          <div class="field">
-            <label>Ставка за смену (₽)</label>
-            <input type="number" id="shiftRate" placeholder="2 500" min="0" inputmode="numeric" />
-          </div>
-          <div class="field">
-            <label>Количество смен</label>
-            <input type="number" id="shiftCount" placeholder="15" min="0" inputmode="numeric" />
-          </div>
-          <div class="field">
-            <label>Рабочих дней</label>
-            <input type="number" id="workDays" placeholder="22" min="1" max="31" value="22" inputmode="numeric" />
-          </div>
-          <div class="field">
-            <label>Премия (₽)</label>
-            <input type="number" id="bonus" placeholder="0" min="0" inputmode="numeric" />
-          </div>
-        </div>
-        <button class="btn btn-green btn-full" onclick="calculateIncome()">⚡ Рассчитать план</button>
-        <div class="result-box" id="incomeResult">
-          <div class="res-row"><span>Оклад (смены × ставка)</span><strong id="rSalary">—</strong></div>
-          <div class="res-row"><span>Премия</span><strong id="rBonus">—</strong></div>
-          <div class="res-row"><span>Итого брутто</span><strong id="rTotal">—</strong></div>
-          <div class="res-row"><span>Налог 13%</span><strong id="rTax">—</strong></div>
-          <div class="res-row"><span>Итого нетто</span><strong id="rNet">—</strong></div>
-          <div class="res-row"><span>Средний доход / день (нетто)</span><strong id="rDay">—</strong></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
 <!-- ══════ TAB: РАСХОДЫ ══════ -->
@@ -631,6 +639,47 @@ select {
         <div id="fullEmpty" class="empty-state" style="display:none">
           <div class="empty-icon">🧾</div>
           <div class="empty-text">Расходов пока нет. Добавьте первый!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Калькулятор зарплат -->
+  <div class="section-title">
+    Калькулятор зарплат
+    <button class="collapse-toggle" onclick="toggleCalc()">
+      <span class="collapse-arrow" id="calcArrow">▼</span>
+    </button>
+  </div>
+  <div class="collapse-body closed" id="calcBody">
+    <div class="card">
+      <div class="card-body">
+        <div class="fields">
+          <div class="field">
+            <label>Ставка за смену (₽)</label>
+            <input type="number" id="shiftRate" placeholder="2 500" min="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label>Количество смен</label>
+            <input type="number" id="shiftCount" placeholder="15" min="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label>Рабочих дней</label>
+            <input type="number" id="workDays" placeholder="22" min="1" max="31" value="22" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label>Премия (₽)</label>
+            <input type="number" id="bonus" placeholder="0" min="0" inputmode="numeric" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="calculateIncome()">⚡ Рассчитать план</button>
+        <div class="result-box" id="incomeResult">
+          <div class="res-row"><span>Оклад (смены × ставка)</span><strong id="rSalary">—</strong></div>
+          <div class="res-row"><span>Премия</span><strong id="rBonus">—</strong></div>
+          <div class="res-row"><span>Итого брутто</span><strong id="rTotal">—</strong></div>
+          <div class="res-row"><span>Налог 13%</span><strong id="rTax">—</strong></div>
+          <div class="res-row"><span>Итого нетто</span><strong id="rNet">—</strong></div>
+          <div class="res-row"><span>Средний доход / день (нетто)</span><strong id="rDay">—</strong></div>
         </div>
       </div>
     </div>
@@ -1075,6 +1124,11 @@ function closeModal(modalId) {
 // Close modal when clicking outside
 document.addEventListener('click', (e) => {
   if (e.target.classList.contains('modal')) {
+  // Close theme menu when clicking outside
+  const themeMenu = el('themeMenu');
+  if (themeMenu && !themeMenu.contains(e.target) && !el('hdr-settings').contains(e.target)) {
+    themeMenu.classList.remove('show');
+  }
     e.target.classList.remove('show');
   }
 });
@@ -1085,6 +1139,7 @@ document.addEventListener('keydown', (e) => {
     document.querySelectorAll('.modal.show').forEach(modal => {
       modal.classList.remove('show');
     });
+    el('themeMenu').classList.remove('show');
   }
 });
 
@@ -1187,6 +1242,83 @@ async function saveExpenseEdit() {
   }
 }
 
+/* ═══ THEME MANAGEMENT ═══════════════════════════ */
+let currentTheme = localStorage.getItem('finflow-theme') || 'dark';
+
+function toggleThemeMenu() {
+  const menu = el('themeMenu');
+  menu.classList.toggle('show');
+}
+
+function setTheme(theme) {
+  currentTheme = theme;
+  localStorage.setItem('finflow-theme', theme);
+  applyTheme();
+  updateThemeMenu();
+  el('themeMenu').classList.remove('show');
+}
+
+function applyTheme() {
+  const root = document.documentElement;
+  if (currentTheme === 'light') {
+    root.style.setProperty('--bg', '#f8fafc');
+    root.style.setProperty('--surface', '#ffffff');
+    root.style.setProperty('--border', '#e2e8f0');
+    root.style.setProperty('--ink', '#0f172a');
+    root.style.setProperty('--ink-2', '#64748b');
+    root.style.setProperty('--ink-3', '#94a3b8');
+  } else if (currentTheme === 'dark') {
+    root.style.setProperty('--bg', '#f4f5f7');
+    root.style.setProperty('--surface', '#ffffff');
+    root.style.setProperty('--border', '#e8eaed');
+    root.style.setProperty('--ink', '#111318');
+    root.style.setProperty('--ink-2', '#6b7280');
+    root.style.setProperty('--ink-3', '#9ca3af');
+  } else if (currentTheme === 'auto') {
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    applyThemeFromPreference(prefersDark);
+  }
+}
+
+function applyThemeFromPreference(prefersDark) {
+  const root = document.documentElement;
+  if (prefersDark) {
+    root.style.setProperty('--bg', '#0f172a');
+    root.style.setProperty('--surface', '#1e293b');
+    root.style.setProperty('--border', '#334155');
+    root.style.setProperty('--ink', '#f8fafc');
+    root.style.setProperty('--ink-2', '#cbd5e1');
+    root.style.setProperty('--ink-3', '#94a3b8');
+  } else {
+    root.style.setProperty('--bg', '#f8fafc');
+    root.style.setProperty('--surface', '#ffffff');
+    root.style.setProperty('--border', '#e2e8f0');
+    root.style.setProperty('--ink', '#0f172a');
+    root.style.setProperty('--ink-2', '#64748b');
+    root.style.setProperty('--ink-3', '#94a3b8');
+  }
+}
+
+function updateThemeMenu() {
+  document.querySelectorAll('.theme-option').forEach(option => {
+    option.classList.remove('active');
+  });
+  document.querySelector(`[onclick="setTheme('${currentTheme}')"]`).classList.add('active');
+}
+
+// Initialize theme on load
+document.addEventListener('DOMContentLoaded', () => {
+  applyTheme();
+  updateThemeMenu();
+  
+  // Listen for system theme changes when auto is selected
+  if (currentTheme === 'auto') {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+      applyThemeFromPreference(e.matches);
+    });
+  }
+});
+
 /* ═══ TOAST ═══════════════════════════════════════ */
 let toastTimer = null;
 function showToast(msg) {
@@ -1281,6 +1413,22 @@ if ('serviceWorker' in navigator) {
       <button class="btn btn-secondary" onclick="closeModal('editExpenseModal')">Отмена</button>
       <button class="btn btn-green" onclick="saveExpenseEdit()">Сохранить</button>
     </div>
+  </div>
+</div>
+
+<!-- THEME MENU -->
+<div class="theme-menu" id="themeMenu">
+  <div class="theme-option" onclick="setTheme('light')">
+    <div class="theme-preview light"></div>
+    <span>Светлая</span>
+  </div>
+  <div class="theme-option active" onclick="setTheme('dark')">
+    <div class="theme-preview dark"></div>
+    <span>Тёмная</span>
+  </div>
+  <div class="theme-option" onclick="setTheme('auto')">
+    <div class="theme-preview auto"></div>
+    <span>Авто</span>
   </div>
 </div>
 
