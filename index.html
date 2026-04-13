@@ -582,44 +582,175 @@ select {
 /* AUTH STYLES */
 .auth-container {
   position: fixed; top: 0; left: 0; width: 100%; height: 100vh;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+  background-size: 400% 400%;
+  animation: gradientShift 8s ease infinite;
   display: flex; align-items: center; justify-content: center;
   z-index: 10000;
+  overflow: hidden;
+}
+.auth-container::before {
+  content: '';
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="20" cy="20" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="80" cy="80" r="1" fill="rgba(255,255,255,0.1)"/><circle cx="40" cy="60" r="0.5" fill="rgba(255,255,255,0.1)"/><circle cx="60" cy="30" r="0.8" fill="rgba(255,255,255,0.1)"/></svg>');
+  opacity: 0.6;
 }
 .auth-card {
-  background: #fff; border-radius: 16px; padding: 40px; width: 100%; max-width: 400px;
-  box-shadow: 0 20px 40px rgba(0,0,0,.1);
-  animation: fadeUp .6s ease-out;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  border-radius: 24px; padding: 48px; width: 100%; max-width: 420px;
+  box-shadow: 0 25px 50px rgba(0,0,0,.15), 0 0 0 1px rgba(255,255,255,0.2);
+  animation: cardSlideIn 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative; overflow: hidden;
 }
-.auth-header { text-align: center; margin-bottom: 32px; }
+.auth-card::before {
+  content: '';
+  position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 2s infinite;
+}
+.auth-header { text-align: center; margin-bottom: 40px; position: relative; z-index: 2; }
+.auth-icon {
+  font-size: 3rem; margin-bottom: 16px; display: block;
+  animation: iconBounce 1s ease-out 0.3s both;
+}
 .auth-logo {
-  font-size: 2.5rem; font-weight: 800; color: #2563eb; margin-bottom: 8px;
-  font-family: 'Manrope', sans-serif;
+  font-size: 2.8rem; font-weight: 800; color: #2563eb; margin-bottom: 12px;
+  font-family: 'Manrope', sans-serif; display: block;
+  animation: logoSlideUp 0.8s ease-out 0.5s both;
 }
-.auth-logo em { font-style: normal; color: #7c3aed; }
-.auth-subtitle { color: #6b7280; font-size: .9rem; }
-.auth-form { display: flex; flex-direction: column; gap: 20px; }
-.form-group { display: flex; flex-direction: column; gap: 6px; }
+.auth-logo em {
+  font-style: normal; color: #7c3aed;
+  background: linear-gradient(45deg, #7c3aed, #ec4899);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.auth-subtitle {
+  color: #6b7280; font-size: 1rem; font-weight: 500;
+  animation: fadeInUp 0.8s ease-out 0.7s both;
+}
+.auth-form { display: flex; flex-direction: column; gap: 24px; position: relative; z-index: 2; }
+.form-group { display: flex; flex-direction: column; gap: 8px; }
 .form-group label {
-  font-weight: 600; color: #374151; font-size: .9rem;
+  font-weight: 600; color: #374151; font-size: 1rem; display: flex; align-items: center; gap: 8px;
+  animation: labelSlideIn 0.6s ease-out both;
 }
+.label-icon { font-size: 1.1rem; opacity: 0.8; }
+.input-wrapper { position: relative; }
 .form-group input {
-  padding: 12px 16px; border: 2px solid #e5e7eb; border-radius: 8px;
-  font-size: 1rem; transition: border-color .2s;
+  padding: 16px 20px; border: 2px solid #e5e7eb; border-radius: 12px;
+  font-size: 1rem; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255,255,255,0.8); backdrop-filter: blur(10px);
+  width: 100%; box-sizing: border-box;
 }
 .form-group input:focus {
-  outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.1);
+  outline: none; border-color: #2563eb; box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
+  background: rgba(255,255,255,0.95); transform: translateY(-2px);
+}
+.form-group input::placeholder { color: #9ca3af; font-weight: 400; }
+.input-focus-line {
+  position: absolute; bottom: 0; left: 50%; width: 0; height: 2px;
+  background: linear-gradient(90deg, #2563eb, #7c3aed);
+  transition: all 0.3s ease; border-radius: 1px;
+}
+.form-group input:focus + .input-focus-line {
+  left: 0; width: 100%;
 }
 .auth-btn {
-  background: #2563eb; color: #fff; border: none; padding: 14px;
-  border-radius: 8px; font-size: 1rem; font-weight: 600; cursor: pointer;
-  transition: background .2s; margin-top: 8px;
+  background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+  color: #fff; border: none; padding: 18px 24px; border-radius: 12px;
+  font-size: 1.1rem; font-weight: 600; cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  position: relative; overflow: hidden; margin-top: 12px;
+  box-shadow: 0 4px 15px rgba(37,99,235,0.3);
 }
-.auth-btn:hover { background: #1d4ed8; }
-.auth-btn:active { transform: scale(.98); }
+.auth-btn::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition: left 0.5s;
+}
+.auth-btn:hover {
+  transform: translateY(-2px); box-shadow: 0 8px 25px rgba(37,99,235,0.4);
+}
+.auth-btn:hover::before { left: 100%; }
+.auth-btn:active { transform: translateY(0); }
+.btn-text { position: relative; z-index: 1; }
+.btn-icon {
+  position: relative; z-index: 1; transition: transform 0.3s ease;
+  font-size: 1.2rem;
+}
+.auth-btn:hover .btn-icon { transform: translateX(4px); }
 .auth-error {
+  color: #dc2626; font-size: 0.9rem; text-align: center;
+  background: linear-gradient(135deg, rgba(220,38,38,0.1), rgba(239,68,68,0.1));
+  padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(220,38,38,0.2);
+  backdrop-filter: blur(10px); display: flex; align-items: center; gap: 8px;
+  animation: errorShake 0.5s ease-out;
+}
+.error-icon { font-size: 1.1rem; }
+.error-text { flex: 1; }
+.auth-footer {
+  margin-top: 32px; text-align: center; position: relative; z-index: 2;
+}
+.auth-decor { display: flex; justify-content: center; gap: 12px; margin-top: 20px; }
+.decor-circle {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: rgba(37,99,235,0.3); animation: decorPulse 2s ease-in-out infinite;
+}
+.decor-circle-2 { animation-delay: 0.3s; }
+.decor-circle-3 { animation-delay: 0.6s; }
   color: #dc2626; font-size: .85rem; text-align: center;
   background: #fef2f2; padding: 8px; border-radius: 6px; border: 1px solid #fecaca;
+}
+
+/* AUTH ANIMATIONS */
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes iconBounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+@keyframes logoSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes labelSlideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes decorPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* RESPONSIVE AUTH */
+@media (max-width: 480px) {
+  .auth-card { padding: 32px 24px; margin: 20px; max-width: none; }
+  .auth-logo { font-size: 2.4rem; }
+  .auth-icon { font-size: 2.5rem; }
+  .form-group input { padding: 14px 16px; }
+  .auth-btn { padding: 16px 20px; font-size: 1rem; }
 }
 
 /* ANIMATIONS */
@@ -765,21 +896,47 @@ input:focus, select:focus {
 <div id="authContainer" class="auth-container">
   <div class="auth-card">
     <div class="auth-header">
+      <div class="auth-icon">🔐</div>
       <div class="auth-logo">Fin<em>Flow</em></div>
-      <div class="auth-subtitle">Личный финансовый трекер</div>
+      <div class="auth-subtitle">Войдите в свой аккаунт</div>
     </div>
     <form id="authForm" class="auth-form" onsubmit="handleLogin(event)">
       <div class="form-group">
-        <label for="username">Логин</label>
-        <input type="text" id="username" required autocomplete="username">
+        <label for="username">
+          <span class="label-icon">👤</span>
+          Логин
+        </label>
+        <div class="input-wrapper">
+          <input type="text" id="username" required autocomplete="username" placeholder="Введите ваш логин">
+          <div class="input-focus-line"></div>
+        </div>
       </div>
       <div class="form-group">
-        <label for="password">Пароль</label>
-        <input type="password" id="password" required autocomplete="current-password">
+        <label for="password">
+          <span class="label-icon">🔒</span>
+          Пароль
+        </label>
+        <div class="input-wrapper">
+          <input type="password" id="password" required autocomplete="current-password" placeholder="Введите пароль">
+          <div class="input-focus-line"></div>
+        </div>
       </div>
-      <button type="submit" class="auth-btn">Войти</button>
-      <div id="authError" class="auth-error" style="display:none;"></div>
+      <button type="submit" class="auth-btn">
+        <span class="btn-text">Войти в систему</span>
+        <span class="btn-icon">→</span>
+      </button>
+      <div id="authError" class="auth-error" style="display:none;">
+        <span class="error-icon">⚠️</span>
+        <span class="error-text"></span>
+      </div>
     </form>
+    <div class="auth-footer">
+      <div class="auth-decor">
+        <div class="decor-circle decor-circle-1"></div>
+        <div class="decor-circle decor-circle-2"></div>
+        <div class="decor-circle decor-circle-3"></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1237,36 +1394,7 @@ async function handleLogin(event) {
   }
   
   try {
-    // TEMPORARY: For testing - hardcoded credentials
-    // TODO: Replace with Supabase users table query
-    // SQL to create users table:
-    /*
-    CREATE TABLE users (
-      id SERIAL PRIMARY KEY,
-      username VARCHAR(50) UNIQUE NOT NULL,
-      password VARCHAR(255) NOT NULL,
-      created_at TIMESTAMP DEFAULT NOW()
-    );
-    
-    INSERT INTO users (username, password) VALUES ('admin', 'password123');
-    */
-    
-    // Temporary hardcoded check
-    if (username === 'admin' && password === 'password123') {
-      // Success - show main app
-      isAuthenticated = true;
-      localStorage.setItem('finflow-auth', 'true');
-      
-      el('authContainer').style.display = 'none';
-      el('mainApp').style.display = 'block';
-      
-      // Continue with normal app initialization
-      await loadData();
-      refresh();
-      return;
-    }
-    
-    // If hardcoded check fails, try Supabase (for future use)
+    // Check credentials against Supabase users table
     const { data: users, error } = await supabaseClient
       .from('users')
       .select('*')
@@ -1298,8 +1426,13 @@ async function handleLogin(event) {
 
 function showAuthError(message) {
   const errorEl = el('authError');
-  errorEl.textContent = message;
-  errorEl.style.display = 'block';
+  const errorTextEl = errorEl.querySelector('.error-text');
+  if (errorTextEl) {
+    errorTextEl.textContent = message;
+  } else {
+    errorEl.textContent = message;
+  }
+  errorEl.style.display = 'flex';
   
   // Hide error after 3 seconds
   setTimeout(() => {
