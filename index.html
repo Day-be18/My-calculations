@@ -200,6 +200,31 @@ header {
   .hdr-sync { width: auto; }
 }
 
+/* BOTTOM NAV */
+.bottom-nav {
+  display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+  height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface); border-top: 1px solid var(--border);
+  z-index: 200; box-shadow: 0 -4px 20px rgba(0,0,0,.06);
+}
+@media (min-width: 768px) { .bottom-nav { display: none; } }
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; border: none; background: none;
+  cursor: pointer; color: var(--ink-3); font-family: var(--ff);
+  font-size: .62rem; font-weight: 600; letter-spacing: .3px;
+  text-transform: uppercase; transition: all .3s ease; padding: 8px 4px;
+  -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
+}
+.nav-btn::before {
+  content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 2px;
+  background: var(--green); transition: all .3s ease; transform: translateX(-50%);
+}
+.nav-btn:hover::before, .nav-btn.active::before { width: 80%; }
+.nav-btn:hover { color: var(--green); transform: translateY(-2px); }
+.nav-btn.active { color: var(--green); }
+.nav-icon { font-size: 1.25rem; line-height: 1; }
+
 /* LAYOUT */
 main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%, 1060px); min-height: calc(100vh - var(--nav-h) - 20px); }
 @media (min-width: 768px) { main { padding: 30px 24px 0; } }
@@ -1373,37 +1398,28 @@ async function handleLogin(event) {
   }
   
   try {
-    // TEMPORARY: Check hardcoded credentials first (for testing)
-    if (username === 'DayBe' && password === 'Krivoy26') {
-      // Success - show main app
-      isAuthenticated = true;
-      localStorage.setItem('finflow-auth', 'true');
-      
-      el('authContainer').style.display = 'none';
-      el('mainApp').style.display = 'block';
-      
-      // Continue with normal app initialization
-      await loadData();
-      refresh();
-      return;
-    }
-    
     // Check credentials against Supabase users table
     const { data: users, error } = await supabaseClient
       .from('users')
       .select('*')
       .eq('username', username)
-      .eq('password', password)
       .single();
     
     if (error || !users) {
-      showAuthError('Неверный логин или пароль');
+      showAuthError('Пользователь не найден');
+      return;
+    }
+    
+    // Verify password
+    if (users.password !== password) {
+      showAuthError('Неверный пароль');
       return;
     }
     
     // Success - show main app
     isAuthenticated = true;
     localStorage.setItem('finflow-auth', 'true');
+    localStorage.setItem('finflow-user', users.id);
     
     el('authContainer').style.display = 'none';
     el('mainApp').style.display = 'block';
