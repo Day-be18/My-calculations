@@ -132,7 +132,7 @@ header {
   background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
   color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
   font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
-  cursor: pointer; transition: all .3s cubic-bezier(.25,.46,.45,.94); white-space: nowrap;
+  cursor: pointer; transition: all .3s ease; white-space: nowrap;
   position: relative; overflow: hidden;
 }
 .hdr-reset::before {
@@ -156,7 +156,7 @@ header {
   background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
   color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
   font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
-  cursor: pointer; transition: all .3s cubic-bezier(.25,.46,.45,.94); white-space: nowrap;
+  cursor: pointer; transition: all .3s ease; white-space: nowrap;
   position: relative; display: flex; align-items: center; gap: 6px;
 }
 .hdr-theme:hover { background: rgba(255,255,255,.16); color: var(--header-text); transform: translateY(-1px); }
@@ -205,7 +205,7 @@ header {
   justify-content: center; gap: 3px; border: none; background: none;
   cursor: pointer; color: var(--ink-3); font-family: var(--ff);
   font-size: .62rem; font-weight: 600; letter-spacing: .3px;
-  text-transform: uppercase; transition: all .3s cubic-bezier(.25,.46,.45,.94); padding: 8px 4px;
+  text-transform: uppercase; transition: all .3s ease; padding: 8px 4px;
   -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
 }
 .nav-btn::before {
@@ -281,7 +281,7 @@ main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%,
   background: var(--surface); border-radius: var(--r);
   box-shadow: var(--sh); margin-bottom: 14px; overflow: hidden;
   animation: slideInLeft .35s ease-out both;
-  transition: all .3s cubic-bezier(.25,.46,.45,.94);
+  transition: all .3s ease;
   position: relative;
 }
 .card:nth-child(odd) { animation-name: slideInLeft; }
@@ -338,7 +338,7 @@ input, select {
   font-family: var(--ff); font-size: .88rem; color: var(--ink);
   background: var(--input-bg); outline: none; width: 100%;
   -webkit-appearance: none; appearance: none;
-  transition: all .3s cubic-bezier(.25,.46,.45,.94);
+  transition: all .3s ease;
   position: relative;
 }
 input:focus, select:focus {
@@ -356,7 +356,7 @@ select {
   display: inline-flex; align-items: center; justify-content: center;
   gap: 6px; height: 44px; padding: 0 20px; border: none;
   border-radius: var(--r-s); font-family: var(--ff); font-size: .87rem;
-  font-weight: 600; cursor: pointer; transition: all .3s cubic-bezier(.25,.46,.45,.94);
+  font-weight: 600; cursor: pointer; transition: all .3s ease;
   -webkit-tap-highlight-color: transparent; white-space: nowrap;
   position: relative; overflow: hidden;
 }
@@ -388,7 +388,7 @@ select {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all .3s cubic-bezier(.25,.46,.45,.94); flex-shrink: 0;
+  transition: all .3s ease; flex-shrink: 0;
   -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
 }
 .btn-del::before {
@@ -402,7 +402,7 @@ select {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all .3s cubic-bezier(.25,.46,.45,.94); flex-shrink: 0;
+  transition: all .3s ease; flex-shrink: 0;
   -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
 }
 .btn-edit::before {
@@ -439,13 +439,13 @@ select {
   display: flex; align-items: center; justify-content: center;
   background: none; border: none; padding: 8px; cursor: pointer;
   color: var(--ink-3); border-radius: 999px;
-  transition: all .3s cubic-bezier(.25,.46,.45,.94);
+  transition: all .3s ease;
   -webkit-tap-highlight-color: transparent;
 }
 .collapse-trigger:hover { background: rgba(17,19,24,.08); transform: scale(1.05); }
-.collapse-arrow { font-size: .72rem; color: var(--ink-3); transition: transform .4s cubic-bezier(.25,.46,.45,.94); }
+.collapse-arrow { font-size: .72rem; color: var(--ink-3); transition: transform .4s ease; }
 .collapse-arrow.open { transform: rotate(180deg); }
-.collapse-body { overflow: hidden; transition: all .4s cubic-bezier(.25,.46,.45,.94); }
+.collapse-body { overflow: hidden; transition: all .4s ease; }
 .collapse-body.closed { max-height: 0; opacity: 0; pointer-events: none; transform: translateY(-10px); }
 .collapse-body.open   { max-height: 900px; opacity: 1; transform: translateY(0); }
 .divider { height: 1px; background: var(--border); margin: 14px 0; }
@@ -462,7 +462,7 @@ select {
   padding: 11px 13px; border-radius: var(--r-s);
   background: var(--green-lt); border: 1px solid #d1fae5;
   animation: fadeSlide .25s ease-out both;
-  transition: all .3s cubic-bezier(.25,.46,.45,.94);
+  transition: all .3s ease;
   cursor: pointer;
 }
 .pay-row:hover {
@@ -503,7 +503,7 @@ select {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 13px; border-radius: var(--r-s);
   border: 1px solid var(--border); background: var(--row-bg);
-  transition: all .3s cubic-bezier(.25,.46,.45,.94); animation: fadeSlide .25s ease-out both;
+  transition: all .3s ease; animation: fadeSlide .25s ease-out both;
   cursor: pointer;
 }
 .exp-row:hover {
@@ -557,7 +557,7 @@ select {
   left: 50%; transform: translateX(-50%) translateY(20px);
   background: var(--ink); color: #fff; font-size: .8rem; font-weight: 500;
   padding: 12px 20px; border-radius: 100px; opacity: 0;
-  transition: all .4s cubic-bezier(.25,.46,.45,.94); pointer-events: none;
+  transition: all .4s ease; pointer-events: none;
   z-index: 999; white-space: nowrap; box-shadow: var(--sh-lg);
   animation: slideInUp .3s ease-out;
 }
@@ -579,13 +579,13 @@ select {
 @keyframes slideInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
 @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
-.kpi-card { animation: fadeUp .4s cubic-bezier(.25,.46,.45,.94) both; }
+.kpi-card { animation: fadeUp .4s ease both; }
 .kpi-card:nth-child(1) { animation-delay:.08s; }
 .kpi-card:nth-child(2) { animation-delay:.16s; }
 .kpi-card:nth-child(3) { animation-delay:.24s; }
 .kpi-card:nth-child(4) { animation-delay:.32s; }
 
-.card { animation: slideInLeft .35s ease-out both; }
+.card { animation: slideInLeft .35s ease both; }
 .card:nth-child(odd) { animation-name: slideInLeft; }
 .card:nth-child(even) { animation-name: slideInRight; animation-delay: .1s; }
 
@@ -605,7 +605,7 @@ select {
 .kpi-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--sh-lg);
-  transition: all .3s cubic-bezier(.25,.46,.45,.94);
+  transition: all .3s ease;
 }
 
 .card:hover {
@@ -1586,6 +1586,15 @@ function refresh() {
     fEmpty.style.display = 'none';
     fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
   }
+
+  // Restart animations for newly added elements
+  setTimeout(() => {
+    document.querySelectorAll('.kpi-card, .card, .pay-row, .exp-row').forEach(el => {
+      el.style.animation = 'none';
+      el.offsetHeight; // Trigger reflow
+      el.style.animation = '';
+    });
+  }, 10);
 
   renderChart(totalExp);
 }
