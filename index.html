@@ -384,6 +384,13 @@ select {
   font-weight: 500; cursor: pointer; transition: background .2s;
 }
 .btn-secondary:hover { background: var(--btn-secondary-hover); }
+.export-buttons {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+}
+@media (max-width: 480px) {
+  .export-buttons { flex-direction: column; align-items: stretch; }
+  .export-buttons .btn { width: 100%; }
+}
 .btn-del {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
@@ -758,6 +765,23 @@ input:focus, select:focus {
       <div class="plan-progress" id="savingProgressWrap">
         <div class="plan-bar-bg"><div class="plan-bar" id="savingProgressBar"></div></div>
         <div class="plan-label" id="savingProgressLabel">Цель: 200 000 ₽</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Экспорт отчетов</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="export-buttons">
+        <button class="btn btn-secondary" onclick="exportPaymentsCSV()">
+          📊 Скачать доходы (CSV)
+        </button>
+        <button class="btn btn-secondary" onclick="exportExpensesCSV()">
+          💸 Скачать расходы (CSV)
+        </button>
+        <button class="btn btn-secondary" onclick="exportSavingsCSV()">
+          💰 Скачать накопления (CSV)
+        </button>
       </div>
     </div>
   </div>
@@ -1917,6 +1941,85 @@ if ('serviceWorker' in navigator) {
     </div>
   </div>
 </div>
+
+<script>
+/* ═══ EXPORT FUNCTIONS ═══════════════════════════ */
+function exportPaymentsCSV() {
+  const data = S.payments.map(p => ({
+    'ID': p.id,
+    'Метка': p.label || 'Без метки',
+    'Сумма': p.amount,
+    'Дата': fmtDate(p.date).replace(/\./g, '/'), // Для Excel совместимости
+    'Время': new Date(p.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
+  }));
+  downloadCSV(data, 'доходы_' + new Date().toISOString().split('T')[0] + '.csv');
+}
+
+function exportExpensesCSV() {
+  const data = S.expenses.map(e => ({
+    'ID': e.id,
+    'Категория': e.cat,
+    'Метка': e.label || 'Без метки',
+    'Сумма': e.amount,
+    'Дата': fmtDate(e.date).replace(/\./g, '/'), // Для Excel совместимости
+    'Время': new Date(e.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
+  }));
+  downloadCSV(data, 'расходы_' + new Date().toISOString().split('T')[0] + '.csv');
+}
+
+function exportSavingsCSV() {
+  const data = S.savings.map(s => ({
+    'ID': s.id,
+    'Метка': s.label || 'Без метки',
+    'Сумма': s.amount,
+    'Дата': fmtDate(s.date).replace(/\./g, '/'), // Для Excel совместимости
+    'Время': new Date(s.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
+  }));
+  downloadCSV(data, 'накопления_' + new Date().toISOString().split('T')[0] + '.csv');
+}
+
+function downloadCSV(data, filename) {
+  if (data.length === 0) {
+    alert('Нет данных для экспорта');
+    return;
+  }
+
+  // Получаем заголовки из первого объекта
+  const headers = Object.keys(data[0]);
+  
+  // Создаем CSV строки
+  const csvRows = [];
+  csvRows.push(headers.join(';')); // Заголовки с разделителем ;
+  
+  // Добавляем данные
+  data.forEach(row => {
+    const values = headers.map(header => {
+      const value = row[header];
+      // Экранируем значения с точкой с запятой или кавычками
+      if (typeof value === 'string' && (value.includes(';') || value.includes('"'))) {
+        return '"' + value.replace(/"/g, '""') + '"';
+      }
+      return value;
+    });
+    csvRows.push(values.join(';'));
+  });
+
+  // Создаем Blob и скачиваем
+  const csvContent = '\ufeff' + csvRows.join('\n'); // BOM для корректного отображения в Excel
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+</script>
 
 </body>
 </html>
