@@ -159,6 +159,7 @@ header {
 .hdr-sync.ok { color: var(--sync-ok); background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.30); }
 .hdr-sync.fail { color: var(--sync-fail); background: rgba(220,38,38,.12); border-color: rgba(220,38,38,.30); }
 .hdr-sync.pending { color: var(--sync-pending); }
+.hdr-sync.local { color: rgba(255,255,255,.92); background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.35); }
 .hdr-theme {
   background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
   color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
@@ -1514,10 +1515,17 @@ async function loadData() {
     S.savings = (savingsError && savingsError.code === 'PGRST205') ? [] : (savings || []);
     
     setSyncStatus('ok', 'Синхронизировано с базой');
+    saveLocalCache();
   } catch (e) {
     console.error('Error loading data:', e);
-    setSyncStatus('fail', 'Нет связи с базой');
-    showToast('❌ Не удалось загрузить данные из базы');
+    if (isOffline()) {
+      const ok = loadLocalCache();
+      setSyncStatus('local', 'Локально');
+      if (!ok) showToast('📴 Нет интернета и нет локальных данных');
+    } else {
+      setSyncStatus('fail', 'Нет связи с базой');
+      showToast('❌ Не удалось загрузить данные из базы');
+    }
   }
 }
 
@@ -1538,6 +1546,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   el('payDate').value = todayISO();
 
   await loadData();
+  refresh();
+
+  // Network status: show "Локально" only when offline
+  window.addEventListener('offline', () => {
+    const ok = loadLocalCache();
+    setSyncStatus('local', 'Локально');
+    if (ok) refresh();
+  });
+  window.addEventListener('online', async () => {
+    await loadData();
+    refresh();
+  });
 
   if (S._rate)  el('shiftRate').value  = S._rate;
   if (S._count) el('shiftCount').value = S._count;
@@ -1545,7 +1565,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (S._bonus) el('bonus').value      = S._bonus;
   if (S.plannedIncome > 0) showIncomeResult();
 
-  refresh();
   checkDesktop();
   window.addEventListener('resize', checkDesktop);
 });
@@ -1603,6 +1622,50 @@ function setSyncStatus(state, text) {
   status.classList.toggle('ok', state === 'ok');
   status.classList.toggle('fail', state === 'fail');
   status.classList.toggle('pending', state === 'pending');
+  status.classList.toggle('local', state === 'local');
+}
+
+function isOffline() {
+  return navigator && navigator.onLine === false;
+}
+
+function getUserId() {
+  return localStorage.getItem('finflow-user') || 'anon';
+}
+
+function getLocalCacheKey() {
+  return `finflow-cache:v1:${getUserId()}`;
+}
+
+function saveLocalCache() {
+  try {
+    const payload = {
+      v: 1,
+      savedAt: Date.now(),
+      data: {
+        payments: S.payments || [],
+        expenses: S.expenses || [],
+        savings: S.savings || []
+      }
+    };
+    localStorage.setItem(getLocalCacheKey(), JSON.stringify(payload));
+  } catch (_) {}
+}
+
+function loadLocalCache() {
+  try {
+    const raw = localStorage.getItem(getLocalCacheKey());
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const data = parsed && parsed.data ? parsed.data : null;
+    if (!data) return false;
+    S.payments = Array.isArray(data.payments) ? data.payments : [];
+    S.expenses = Array.isArray(data.expenses) ? data.expenses : [];
+    S.savings = Array.isArray(data.savings) ? data.savings : [];
+    return true;
+  } catch (_) {
+    return false;
+  }
 }
 
 /* ═══ SAVINGS ═════════════════════════════════════
@@ -1615,6 +1678,7 @@ async function addSavings() {
   if (amount <= 0) { showToast('❗ Укажите сумму накопления'); return; }
 
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { data, error } = await supabaseClient.from('savings').insert([{ label, amount, date }]).select();
     if (error) throw error;
     S.savings.push(data[0]);
@@ -1622,6 +1686,7 @@ async function addSavings() {
     el('savAmount').value = '';
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('✅ Накопление записано');
   } catch (e) {
     console.error('Error adding savings:', e);
@@ -1632,11 +1697,13 @@ async function addSavings() {
 
 async function deleteSavings(id) {
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient.from('savings').delete().eq('id', id);
     if (error) throw error;
     S.savings = S.savings.filter(s => s.id !== id);
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('🗑 Накопление удалено');
   } catch (e) {
     console.error('Error deleting savings:', e);
@@ -1683,6 +1750,7 @@ async function saveSavingsEdit() {
   }
 
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient
       .from('savings')
       .update({ label, amount, date })
@@ -1699,6 +1767,7 @@ async function saveSavingsEdit() {
     closeModal('editSavingsModal');
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('✅ Накопление обновлено');
   } catch (e) {
     console.error('Error updating savings:', e);
@@ -1717,6 +1786,7 @@ async function addPayment() {
   if (amount <= 0) { showToast('❗ Укажите сумму выплаты'); return; }
 
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { data, error } = await supabaseClient.from('payments').insert([{ label, amount, date }]).select();
     if (error) throw error;
     S.payments.push(data[0]);
@@ -1724,6 +1794,7 @@ async function addPayment() {
     el('payAmount').value = '';
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('✅ Выплата записана');
   } catch (e) {
     console.error('Error adding payment:', e);
@@ -1734,11 +1805,13 @@ async function addPayment() {
 
 async function deletePayment(id) {
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient.from('payments').delete().eq('id', id);
     if (error) throw error;
     S.payments = S.payments.filter(p => p.id !== id);
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('🗑 Выплата удалена');
   } catch (e) {
     console.error('Error deleting payment:', e);
@@ -1804,6 +1877,7 @@ async function addExpense() {
   if (amount <= 0){ showToast('❗ Укажите сумму');    return; }
 
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { data, error } = await supabaseClient.from('expenses').insert([{ name, cat, amount, date }]).select();
     if (error) throw error;
     S.expenses.push(data[0]);
@@ -1811,6 +1885,7 @@ async function addExpense() {
     el('expAmount').value = '';
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('✅ Расход добавлен');
   } catch (e) {
     console.error('Error adding expense:', e);
@@ -1821,11 +1896,13 @@ async function addExpense() {
 
 async function deleteExpense(id) {
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient.from('expenses').delete().eq('id', id);
     if (error) throw error;
     S.expenses = S.expenses.filter(e => e.id !== id);
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('🗑 Удалено');
   } catch (e) {
     console.error('Error deleting expense:', e);
@@ -2022,6 +2099,7 @@ function renderChart(totalExp) {
 async function resetAll() {
   if (!confirm('Сбросить все данные?\nЭто действие нельзя отменить.')) return;
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     await supabaseClient.from('payments').delete().neq('id', 0); // Delete all
     await supabaseClient.from('expenses').delete().neq('id', 0);
     await supabaseClient.from('savings').delete().neq('id', 0);
@@ -2031,6 +2109,7 @@ async function resetAll() {
     el('incomeResult').style.display = 'none';
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('🗑 Данные сброшены');
   } catch (e) {
     console.error('Error resetting data:', e);
@@ -2086,6 +2165,7 @@ async function savePaymentEdit() {
   }
 
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient
       .from('payments')
       .update({ label, amount, date })
@@ -2102,6 +2182,7 @@ async function savePaymentEdit() {
     closeModal('editPaymentModal');
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('✅ Выплата обновлена');
   } catch (e) {
     console.error('Error updating payment:', e);
@@ -2138,6 +2219,7 @@ async function saveExpenseEdit() {
   }
 
   try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient
       .from('expenses')
       .update({ name, cat, amount, date })
@@ -2155,6 +2237,7 @@ async function saveExpenseEdit() {
     closeModal('editExpenseModal');
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
     showToast('✅ Расход обновлен');
   } catch (e) {
     console.error('Error updating expense:', e);
