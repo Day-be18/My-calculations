@@ -1342,21 +1342,22 @@ function applyTheme(theme) {
   } else if (theme === 'auto') {
     const hour = new Date().getHours();
     const isDark = hour < 6 || hour >= 20;
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : '');
+    if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
   }
   localStorage.setItem('finflow-theme', theme);
+}
+
+function getTotalExpenses() {
+  return (S.expenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
 }
 
 function setTheme(theme) {
   applyTheme(theme);
   updateThemeUI(theme);
   closeThemeMenu();
-  if (chart) {
-    chart.options.plugins.legend.labels.color = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
-    chart.options.plugins.tooltip.titleColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
-    chart.options.plugins.tooltip.bodyColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
-    chart.update();
-  }
+  // Re-render chart so legend/tooltip colors always match theme
+  if (chart || (S.expenses && S.expenses.length)) renderChart(getTotalExpenses());
 }
 
 function toggleThemeMenu() {
@@ -1386,6 +1387,32 @@ function updateThemeUI(theme) {
 }
 
 /* ═══ AUTH FUNCTIONS ═════════════════════════════ */
+function setAuthUI(authenticated) {
+  isAuthenticated = !!authenticated;
+  el('authContainer').style.display = authenticated ? 'none' : 'flex';
+  el('mainApp').style.display = authenticated ? 'block' : 'none';
+}
+
+async function validateStoredAuth() {
+  const userId = localStorage.getItem('finflow-user');
+  if (!userId) return false;
+  if (isOffline()) return false; // auth is based only on DB data
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+    if (error || !data) throw error || new Error('no user');
+    return true;
+  } catch (_) {
+    localStorage.removeItem('finflow-user');
+    localStorage.removeItem('finflow-auth-at');
+    return false;
+  }
+}
+
 async function handleLogin(event) {
   event.preventDefault();
   
@@ -1418,12 +1445,9 @@ async function handleLogin(event) {
     }
     
     // Success - show main app
-    isAuthenticated = true;
-    localStorage.setItem('finflow-auth', 'true');
     localStorage.setItem('finflow-user', users.id);
-    
-    el('authContainer').style.display = 'none';
-    el('mainApp').style.display = 'block';
+    localStorage.setItem('finflow-auth-at', String(Date.now()));
+    setAuthUI(true);
     
     // Continue with normal app initialization
     await loadData();
@@ -1463,8 +1487,9 @@ function togglePasswordVisibility() {
 }
 
 function logout() {
-  isAuthenticated = false;
-  localStorage.removeItem('finflow-auth');
+  setAuthUI(false);
+  localStorage.removeItem('finflow-user');
+  localStorage.removeItem('finflow-auth-at');
   
   // Clear form
   el('username').value = '';
@@ -1472,22 +1497,7 @@ function logout() {
   el('authError').style.display = 'none';
   
   // Show auth form
-  el('mainApp').style.display = 'none';
-  el('authContainer').style.display = 'flex';
-}
-
-function checkAuthStatus() {
-  const authStatus = localStorage.getItem('finflow-auth');
-  if (authStatus === 'true') {
-    isAuthenticated = true;
-    el('authContainer').style.display = 'none';
-    el('mainApp').style.display = 'block';
-    return true;
-  } else {
-    el('authContainer').style.display = 'flex';
-    el('mainApp').style.display = 'none';
-    return false;
-  }
+  setAuthUI(false);
 }
 
 document.addEventListener('click', (e) => {
@@ -1532,10 +1542,13 @@ async function loadData() {
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
   
-  // Check authentication first
-  if (!checkAuthStatus()) {
-    return; // Stop initialization if not authenticated
+  // Auth is validated only via DB (offline -> login screen)
+  const authed = await validateStoredAuth();
+  if (!authed) {
+    setAuthUI(false);
+    return;
   }
+  setAuthUI(true);
   
   setInterval(() => {
     const theme = localStorage.getItem('finflow-theme') || 'auto';
