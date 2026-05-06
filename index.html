@@ -107,15 +107,15 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; height: 100%; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
 body {
   font-family: var(--ff);
   background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
-  height: 100%;
-  padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: 20px;
 }
+@media (max-width: 767px) { body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px); } }
 @media (min-width: 768px) { body { padding-bottom: 48px; } }
 
 /* HEADER */
@@ -227,8 +227,9 @@ header {
 .nav-icon { font-size: 1.25rem; line-height: 1; }
 
 /* LAYOUT */
-main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%, 1060px); min-height: calc(100vh - var(--nav-h) - 20px); }
+main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%, 1060px); }
 @media (min-width: 768px) { main { padding: 30px 24px 0; } }
+@media (max-width: 767px) { main { min-height: auto; } }
 @media (max-width: 420px) { main { padding: 12px 10px 0; } }
 .tab-section { display: none; }
 .tab-section.active { display: block; }
@@ -554,11 +555,13 @@ select {
 
 /* CHART */
 .chart-wrap {
-  position: relative; height: 190px;
+  position: relative; height: 220px;
   display: flex; align-items: center; justify-content: center;
 }
-@media (min-width: 768px) { .chart-wrap { height: 210px; } }
-@media (max-width: 560px) { .chart-wrap { height: 170px; } }
+@media (min-width: 768px) { .chart-wrap { height: 240px; } }
+@media (max-width: 767px) { .chart-wrap { height: 200px; } }
+@media (max-width: 560px) { .chart-wrap { height: 180px; } }
+@media (max-width: 420px) { .chart-wrap { height: 160px; } }
 
 @media (min-width: 1200px) {
   main { padding: 40px 28px 0; }
