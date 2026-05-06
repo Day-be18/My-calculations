@@ -1022,8 +1022,50 @@ input:focus, select:focus {
     </div>
   </div>
 
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-b">📅</div>
+      <div>
+        <div class="card-title">Месячный обзор</div>
+        <div class="card-sub">Доходы, расходы и накопления за выбранный месяц</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Месяц</label>
+          <select id="monthSelect"></select>
+        </div>
+      </div>
+      <div class="kpi-grid month-summary-grid">
+        <div class="kpi-card k-income">
+          <div class="kpi-label">Доходы</div>
+          <div class="kpi-val g" id="monthIncome">0 ₽</div>
+          <div class="kpi-sub" id="monthIncomeCount">0 выплат</div>
+        </div>
+        <div class="kpi-card k-expense">
+          <div class="kpi-label">Расходы</div>
+          <div class="kpi-val r" id="monthExpenses">0 ₽</div>
+          <div class="kpi-sub" id="monthExpensesCount">0 записей</div>
+        </div>
+        <div class="kpi-card k-saved">
+          <div class="kpi-label">Накоплено</div>
+          <div class="kpi-val b" id="monthSavings">0 ₽</div>
+          <div class="kpi-sub" id="monthSavingsCount">0 накоплений</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="section-title">Расходы по категориям</div>
   <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">📈</div>
+      <div>
+        <div class="card-title">Диаграмма по выбранному месяцу</div>
+        <div class="card-sub" id="chartMonthLabel">За текущий месяц</div>
+      </div>
+    </div>
     <div class="card-body">
       <div class="chart-wrap">
         <canvas id="chartCanvas"></canvas>
@@ -1559,6 +1601,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   el('payDate').value = todayISO();
 
   await loadData();
+  initMonthFilter();
   refresh();
 
   // Network status: show "Локально" only when offline
@@ -1581,6 +1624,71 @@ document.addEventListener('DOMContentLoaded', async () => {
   checkDesktop();
   window.addEventListener('resize', checkDesktop);
 });
+
+let currentMonthKey = null;
+
+function getMonthKey(date) {
+  if (!date) return null;
+  const [year, month] = date.split('-');
+  return year && month ? `${year}-${month}` : null;
+}
+
+function getMonthLabel(key) {
+  if (!key) return 'Все месяцы';
+  const [year, month] = key.split('-');
+  const labels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+  return `${labels[Number(month) - 1] || month} ${year}`;
+}
+
+function buildMonthOptions() {
+  const allDates = [...S.payments, ...S.expenses, ...S.savings]
+    .map(item => getMonthKey(item.date))
+    .filter(Boolean);
+  const unique = [...new Set(allDates)].sort().reverse();
+  const select = el('monthSelect');
+  if (!select) return;
+  select.innerHTML = unique.map(key => `<option value="${key}">${getMonthLabel(key)}</option>`).join('');
+  if (!currentMonthKey && unique.length) currentMonthKey = unique[0];
+  if (currentMonthKey && unique.includes(currentMonthKey)) {
+    select.value = currentMonthKey;
+  } else if (unique.length) {
+    currentMonthKey = unique[0];
+    select.value = currentMonthKey;
+  }
+}
+
+function getMonthItems(items, monthKey) {
+  if (!monthKey) return items;
+  return items.filter(item => getMonthKey(item.date) === monthKey);
+}
+
+function initMonthFilter() {
+  currentMonthKey = localStorage.getItem('finflow-month');
+  buildMonthOptions();
+  const select = el('monthSelect');
+  if (!select) return;
+  select.addEventListener('change', () => {
+    currentMonthKey = select.value;
+    localStorage.setItem('finflow-month', currentMonthKey);
+    refresh();
+  });
+}
+
+function updateMonthSummary(monthKey) {
+  const incomeItems = getMonthItems(S.payments, monthKey);
+  const expenseItems = getMonthItems(S.expenses, monthKey);
+  const savingsItems = getMonthItems(S.savings, monthKey);
+  const totalReceived = incomeItems.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalExp = expenseItems.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const totalSavings = savingsItems.reduce((sum, s) => sum + Number(s.amount || 0), 0);
+  el('monthIncome').textContent = fmt(totalReceived);
+  el('monthIncomeCount').textContent = `${incomeItems.length} ${incomeItems.length === 1 ? 'выплата' : incomeItems.length < 5 ? 'выплаты' : 'выплат'}`;
+  el('monthExpenses').textContent = fmt(totalExp);
+  el('monthExpensesCount').textContent = `${expenseItems.length} ${expenseItems.length === 1 ? 'запись' : 'записи'}`;
+  el('monthSavings').textContent = fmt(totalSavings);
+  el('monthSavingsCount').textContent = `${savingsItems.length} ${savingsItems.length === 1 ? 'накопление' : 'накопления'}`;
+  if (el('chartMonthLabel')) el('chartMonthLabel').textContent = monthKey ? `За ${getMonthLabel(monthKey)}` : 'По всем месяцам';
+}
 
 function checkDesktop() {
   if (window.innerWidth >= 768)
@@ -1950,6 +2058,7 @@ function expRowHTML(e, withDelete) {
 
 /* ═══ REFRESH (render all) ════════════════════════ */
 function refresh() {
+  const monthKey       = currentMonthKey || getMonthKey(todayISO());
   const totalReceived = S.payments.reduce((s,p) => s + p.amount, 0);
   const totalExp      = S.expenses.reduce((s,e) => s + e.amount, 0);
   const totalSavings  = S.savings.reduce((s,sv) => s + sv.amount, 0);
@@ -1957,6 +2066,9 @@ function refresh() {
   const isPos         = balance >= 0;
   const savingsGoal   = 200000;
   const savingsPct    = Math.min((totalSavings / savingsGoal) * 100, 100);
+
+  buildMonthOptions();
+  updateMonthSummary(monthKey);
 
   /* KPI */
   el('kpiIncome').textContent   = fmt(totalReceived);
@@ -2057,27 +2169,29 @@ function refresh() {
     });
   }, 10);
 
-  renderChart(totalExp);
+  renderChart(totalExp, monthKey);
 }
 
 /* ═══ CHART ═══════════════════════════════════════ */
 let chart = null;
-function renderChart(totalExp) {
+function renderChart(totalExp, monthKey) {
   const canvas = el('chartCanvas');
   const empty  = el('chartEmpty');
-  if (S.expenses.length === 0) {
+  const filteredExpenses = monthKey ? getMonthItems(S.expenses, monthKey) : S.expenses;
+  if (filteredExpenses.length === 0) {
     canvas.style.display = 'none'; empty.style.display = 'block';
     if (chart) { chart.destroy(); chart = null; }
     return;
   }
   canvas.style.display = 'block'; empty.style.display = 'none';
   const agg = {};
-  S.expenses.forEach(e => { agg[e.cat] = (agg[e.cat]||0) + e.amount; });
+  filteredExpenses.forEach(e => { agg[e.cat] = (agg[e.cat]||0) + e.amount; });
   const labels = Object.keys(agg);
   const data   = Object.values(agg);
   const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
   if (chart) chart.destroy();
   const chartTextColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
+  const totalForTooltip = filteredExpenses.reduce((sum, e) => sum + e.amount, 0) || 1;
   chart = new Chart(canvas, {
     type: 'doughnut',
     data: { labels, datasets:[{ data, backgroundColor:colors, borderWidth:4, borderColor:'#fff', hoverOffset:10 }] },
@@ -2096,7 +2210,7 @@ function renderChart(totalExp) {
         },
         tooltip: {
           callbacks: {
-            label: ctx => `  ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/(totalExp||1)*100)}%)`
+            label: ctx => `  ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/totalForTooltip*100)}%)`
           },
           titleFont: { family:"'Manrope',sans-serif", weight:'700' },
           bodyFont: { family:"'Manrope',sans-serif" },
