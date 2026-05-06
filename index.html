@@ -2199,6 +2199,8 @@ function renderChart(totalExp, monthKey) {
   const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
   if (chart) chart.destroy();
   const chartTextColor = getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim();
+  const tooltipTextColor = document.documentElement.hasAttribute('data-theme') ? chartTextColor : getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
+  const tooltipBgColor = document.documentElement.hasAttribute('data-theme') ? 'rgba(0,0,0,.78)' : '#ffffff';
   const totalForTooltip = filteredExpenses.reduce((sum, e) => sum + e.amount, 0) || 1;
   chart = new Chart(canvas, {
     type: 'doughnut',
@@ -2222,8 +2224,9 @@ function renderChart(totalExp, monthKey) {
           },
           titleFont: { family:"'Manrope',sans-serif", weight:'700' },
           bodyFont: { family:"'Manrope',sans-serif" },
-          titleColor: chartTextColor,
-          bodyColor: chartTextColor
+          backgroundColor: tooltipBgColor,
+          titleColor: tooltipTextColor,
+          bodyColor: tooltipTextColor
         }
       }
     }
