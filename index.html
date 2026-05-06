@@ -2236,6 +2236,11 @@ function renderChart(totalExp, monthKey) {
 /* ═══ RESET ═══════════════════════════════════════ */
 async function resetAll() {
   if (!confirm('Сбросить все данные?\nЭто действие нельзя отменить.')) return;
+  let password = prompt('Введите пароль для сброса:');
+  if (password !== '424331') {
+    alert('Неверный пароль');
+    return;
+  }
   try {
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     await supabaseClient.from('payments').delete().neq('id', 0); // Delete all
