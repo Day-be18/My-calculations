@@ -410,11 +410,11 @@ select {
 }
 .btn-del::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: var(--red-lt); border-radius: 8px; opacity: 0;
-  transition: opacity .3s ease;
+  background: rgba(220, 38, 38, 0.18); border-radius: 8px; opacity: 0;
+  transition: opacity .3s ease, background .3s ease;
 }
-.btn-del:hover::before { opacity: 1; }
-.btn-del:hover { color: var(--red); transform: scale(1.1) rotate(5deg); }
+.btn-del:hover::before { opacity: 1; background: rgba(220, 38, 38, 0.28); }
+.btn-del:hover { background: rgba(220, 38, 38, 0.12); color: var(--red); transform: scale(1.1) rotate(5deg); }
 .btn-edit {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
@@ -424,11 +424,11 @@ select {
 }
 .btn-edit::before {
   content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-  background: var(--blue-lt); border-radius: 8px; opacity: 0;
-  transition: opacity .3s ease;
+  background: rgba(59, 130, 246, 0.18); border-radius: 8px; opacity: 0;
+  transition: opacity .3s ease, background .3s ease;
 }
-.btn-edit:hover::before { opacity: 1; }
-.btn-edit:hover { color: var(--blue); transform: scale(1.1) rotate(-5deg); }
+.btn-edit:hover::before { opacity: 1; background: rgba(59, 130, 246, 0.26); }
+.btn-edit:hover { background: rgba(59, 130, 246, 0.12); color: var(--blue); transform: scale(1.1) rotate(-5deg); }
 .pay-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .exp-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
