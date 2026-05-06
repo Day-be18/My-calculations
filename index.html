@@ -2502,37 +2502,55 @@ if ('serviceWorker' in navigator) {
 <script>
 /* ═══ EXPORT FUNCTIONS ═══════════════════════════ */
 function exportPaymentsCSV() {
-  const data = S.payments.map(p => ({
+  const filtered = getMonthItems(S.payments, currentMonthKey);
+  if (filtered.length === 0) {
+    alert('Нет данных для экспорта за выбранный период');
+    return;
+  }
+  const data = filtered.map(p => ({
     'ID': p.id,
     'Метка': p.label || 'Без метки',
     'Сумма': p.amount,
-    'Дата': fmtDate(p.date).replace(/\./g, '/'), // Для Excel совместимости
+    'Дата': fmtDate(p.date).replace(/\./g, '/'),
     'Время': new Date(p.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
   }));
-  downloadCSV(data, 'доходы_' + new Date().toISOString().split('T')[0] + '.csv');
+  const suffix = currentMonthKey ? currentMonthKey.replace('-', '_') : 'все';
+  downloadCSV(data, `доходы_${suffix}.csv`);
 }
 
 function exportExpensesCSV() {
-  const data = S.expenses.map(e => ({
+  const filtered = getMonthItems(S.expenses, currentMonthKey);
+  if (filtered.length === 0) {
+    alert('Нет данных для экспорта за выбранный период');
+    return;
+  }
+  const data = filtered.map(e => ({
     'ID': e.id,
     'Категория': e.cat,
     'Метка': e.label || 'Без метки',
     'Сумма': e.amount,
-    'Дата': fmtDate(e.date).replace(/\./g, '/'), // Для Excel совместимости
+    'Дата': fmtDate(e.date).replace(/\./g, '/'),
     'Время': new Date(e.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
   }));
-  downloadCSV(data, 'расходы_' + new Date().toISOString().split('T')[0] + '.csv');
+  const suffix = currentMonthKey ? currentMonthKey.replace('-', '_') : 'все';
+  downloadCSV(data, `расходы_${suffix}.csv`);
 }
 
 function exportSavingsCSV() {
-  const data = S.savings.map(s => ({
+  const filtered = getMonthItems(S.savings, currentMonthKey);
+  if (filtered.length === 0) {
+    alert('Нет данных для экспорта за выбранный период');
+    return;
+  }
+  const data = filtered.map(s => ({
     'ID': s.id,
     'Метка': s.label || 'Без метки',
     'Сумма': s.amount,
-    'Дата': fmtDate(s.date).replace(/\./g, '/'), // Для Excel совместимости
+    'Дата': fmtDate(s.date).replace(/\./g, '/'),
     'Время': new Date(s.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
   }));
-  downloadCSV(data, 'накопления_' + new Date().toISOString().split('T')[0] + '.csv');
+  const suffix = currentMonthKey ? currentMonthKey.replace('-', '_') : 'все';
+  downloadCSV(data, `накопления_${suffix}.csv`);
 }
 
 function downloadCSV(data, filename) {
