@@ -547,6 +547,11 @@ select {
 .empty-icon  { font-size: 1.8rem; margin-bottom: 6px; }
 .empty-text  { font-size: .82rem; }
 
+/* HIDE MOBILE */
+@media (max-width: 767px) {
+  .hide-mobile { display: none !important; }
+}
+
 /* CHART */
 .chart-wrap {
   position: relative; height: 190px;
@@ -1077,8 +1082,8 @@ input:focus, select:focus {
     </div>
   </div>
 
-  <div class="section-title">Последние расходы</div>
-  <div class="card">
+  <div class="section-title hide-mobile">Последние расходы</div>
+  <div class="card hide-mobile">
     <div class="card-hdr">
       <div class="card-ico ico-r">🧾</div>
       <div class="card-title">Последние расходы</div>
