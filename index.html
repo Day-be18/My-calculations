@@ -543,6 +543,7 @@ select {
 .c-Мобильная_связь { background: #eff6ff; color: #2563eb; }
 .c-Домашний_интернет { background: #ecfdf5; color: #059669; }
 .c-VPN { background: #fffbeb; color: #d97706; }
+.c-Подписки   { background: var(--purple-lt); color: var(--purple); }
 .c-Другое     { background: var(--slate-lt);  color: var(--slate); }
 
 /* EMPTY STATES */
@@ -1304,6 +1305,7 @@ input:focus, select:focus {
               <option>Мобильная связь</option>
               <option>Домашний интернет</option>
               <option>VPN</option>
+              <option>Подписки</option>
               <option>Другое</option>
             </select>
           </div>
@@ -1376,9 +1378,7 @@ let S = {
 
 const CAT_COLORS = {
   'Еда':'#d97706', 'Обязательные расходы':'#dc2626',
-  'Не обязательные расходы':'#059669', 'Транспорт':'#ec4899', 'Мобильная связь':'#3b82f6', 'Домашний интернет':'#10b981', 'VPN':'#f59e0b', 'Другое':'#64748b'
-};
-
+  'Не обязательные расходы':'#059669', 'Транспорт':'#ec4899', 'Мобильная связь':'#3b82f6', 'Домашний интернет':'#10b981', 'VPN':'#f59e0b', 'Подписки':'#7c3aed', 'Другое':'#64748b'
 let isAuthenticated = false;
 
 /* ═══ THEME ═══════════════════════════════════════ */
@@ -2472,6 +2472,7 @@ if ('serviceWorker' in navigator) {
             <option>Мобильная связь</option>
             <option>Домашний интернет</option>
             <option>VPN</option>
+            <option>Подписки</option>
             <option>Другое</option>
           </select>
         </div>
