@@ -1359,6 +1359,71 @@ input:focus, select:focus {
   </div>
 
 </div>
+
+<!-- ══════ TAB: СТАТИСТИКА ══════ -->
+<div id="tab-stats" class="tab-section">
+  <div class="section-title">Статистика расходов</div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">📊</div>
+      <div>
+        <div class="card-title">Аналитика расходов</div>
+        <div class="card-sub">Средние траты по категориям и тенденции за последние месяцы</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="kpi-grid">
+        <div class="kpi-card k-expense">
+          <div class="kpi-label">Средний расход</div>
+          <div class="kpi-val r" id="statsAvgExpense">0 ₽</div>
+          <div class="kpi-sub" id="statsAvgCount">за одну запись</div>
+        </div>
+        <div class="kpi-card k-balance">
+          <div class="kpi-label">Топ категория</div>
+          <div class="kpi-val b" id="statsTopCategory">—</div>
+          <div class="kpi-sub" id="statsTopCategorySum">—</div>
+        </div>
+        <div class="kpi-card k-saved">
+          <div class="kpi-label">Категорий</div>
+          <div class="kpi-val b" id="statsCategoriesCount">0</div>
+          <div class="kpi-sub">активных категорий</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Средние расходы по категориям</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="statsCatChart"></canvas>
+        <div id="statsCatEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">Добавьте расходы, чтобы увидеть аналитику</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Тренд расходов</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="statsTrendChart"></canvas>
+        <div id="statsTrendEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">📈</div>
+          <div class="empty-text">Добавьте расходы, чтобы увидеть тренд</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Средние расходы по категориям</div>
+  <div class="card">
+    <div class="card-body" id="statsTable"></div>
+  </div>
+</div>
+
 </main>
 
 <nav class="bottom-nav">
@@ -1367,6 +1432,9 @@ input:focus, select:focus {
   </button>
   <button class="nav-btn" id="nav-income"   onclick="switchTab('income')">
     <span class="nav-icon">💰</span>Доход
+  </button>
+  <button class="nav-btn" id="nav-stats" onclick="switchTab('stats')">
+    <span class="nav-icon">📊</span>Статистика
   </button>
   <button class="nav-btn" id="nav-expenses" onclick="switchTab('expenses')">
     <span class="nav-icon">🧾</span>Расходы
@@ -1808,6 +1876,7 @@ function switchTab(name) {
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   el('tab-' + name).classList.add('active');
   el('nav-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
@@ -2212,6 +2281,139 @@ function filterExpenses() {
   }
 }
 
+function computeCategoryStats() {
+  const map = {};
+  S.expenses.forEach(e => {
+    if (!map[e.cat]) map[e.cat] = { total: 0, count: 0 };
+    map[e.cat].total += Number(e.amount || 0);
+    map[e.cat].count += 1;
+  });
+  return Object.entries(map).map(([cat, data]) => ({
+    cat,
+    total: data.total,
+    count: data.count,
+    avg: data.count ? data.total / data.count : 0
+  })).sort((a, b) => b.total - a.total);
+}
+
+function getMonthlyTrendData(months = 6) {
+  const today = new Date();
+  const trend = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const total = S.expenses
+      .filter(e => getMonthKey(e.date) === key)
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    trend.push({ key, label: getMonthLabel(key), total });
+  }
+  return trend;
+}
+
+function renderStats() {
+  const categoryStats = computeCategoryStats();
+  const totalCount = categoryStats.reduce((sum, item) => sum + item.count, 0);
+  const totalAmount = categoryStats.reduce((sum, item) => sum + item.total, 0);
+  const averageExpense = totalCount ? totalAmount / totalCount : 0;
+  const topCategory = categoryStats[0] || null;
+
+  if (el('statsAvgExpense')) el('statsAvgExpense').textContent = fmt(averageExpense);
+  if (el('statsAvgCount')) el('statsAvgCount').textContent = totalCount ? `${totalCount} записей` : 'нет данных';
+  if (el('statsTopCategory')) el('statsTopCategory').textContent = topCategory ? topCategory.cat : '—';
+  if (el('statsTopCategorySum')) el('statsTopCategorySum').textContent = topCategory ? `Всего ${fmt(topCategory.total)}` : '—';
+  if (el('statsCategoriesCount')) el('statsCategoriesCount').textContent = categoryStats.length;
+
+  renderStatsCategoryChart(categoryStats);
+  renderStatsTrendChart(getMonthlyTrendData(6));
+  renderStatsTable(categoryStats);
+}
+
+function renderStatsCategoryChart(categoryStats) {
+  const canvas = el('statsCatChart');
+  const empty = el('statsCatEmpty');
+  if (!canvas) return;
+  if (categoryStats.length === 0) {
+    canvas.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    if (statsChart) { statsChart.destroy(); statsChart = null; }
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  canvas.style.display = 'block';
+  const labels = categoryStats.map(item => item.cat);
+  const data = categoryStats.map(item => item.avg);
+  const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
+  if (statsChart) statsChart.destroy();
+  statsChart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets:[{ label:'Средний расход', data, backgroundColor: colors, borderColor: colors, borderWidth: 1 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
+      },
+      scales: {
+        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } },
+        y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } }
+      }
+    }
+  });
+}
+
+function renderStatsTrendChart(trendData) {
+  const canvas = el('statsTrendChart');
+  const empty = el('statsTrendEmpty');
+  if (!canvas) return;
+  if (trendData.length === 0) {
+    canvas.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    if (trendChart) { trendChart.destroy(); trendChart = null; }
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  canvas.style.display = 'block';
+  const labels = trendData.map(item => item.label);
+  const data = trendData.map(item => item.total);
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim();
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets:[{ label:'Расходы', data, borderColor: color, backgroundColor: 'rgba(59,130,246,.2)', fill:true, tension:0.35, pointRadius:4 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, plugins: {
+        legend: { display:false },
+        tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)}` } }
+      },
+      scales: {
+        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } },
+        y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } }
+      }
+    }
+  });
+}
+
+function renderStatsTable(categoryStats) {
+  const table = el('statsTable');
+  if (!table) return;
+  if (categoryStats.length === 0) {
+    table.innerHTML = '<div class="empty-state"><div class="empty-icon">📌</div><div class="empty-text">Нет расходов для построения таблицы</div></div>';
+    return;
+  }
+  table.innerHTML = categoryStats.map(item => `
+    <div class="exp-row" style="padding:12px 0;border-bottom:1px solid var(--border);">
+      <div class="exp-info" style="flex:1;min-width:0;">
+        <div class="exp-name" style="font-size:.95rem;">${esc(item.cat)}</div>
+        <div class="exp-meta" style="margin-top:4px;gap:8px;">
+          <span class="exp-date-text">Средний: ${fmt(item.avg)}</span>
+          <span class="exp-date-text">Всего: ${fmt(item.total)}</span>
+          <span class="exp-date-text">Записей: ${item.count}</span>
+        </div>
+      </div>
+      <div class="exp-amount-text" style="font-size:.92rem;">${fmt(item.total)}</div>
+    </div>
+  `).join('');
+}
+
 /* ═══ REFRESH (render all) ════════════════════════ */
 function refresh() {
   const monthKey       = currentMonthKey || getMonthKey(todayISO());
@@ -2332,10 +2534,13 @@ function refresh() {
   }, 10);
 
   renderChart(totalExp, monthKey);
+  renderStats();
 }
 
 /* ═══ CHART ═══════════════════════════════════════ */
 let chart = null;
+let statsChart = null;
+let trendChart = null;
 function renderChart(totalExp, monthKey) {
   const canvas = el('chartCanvas');
   const empty  = el('chartEmpty');
