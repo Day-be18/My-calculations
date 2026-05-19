@@ -15,7 +15,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -46,6 +47,10 @@
   --sh:    0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
   --sh-lg: 0 4px 24px rgba(0,0,0,.10);
   --nav-h: 68px;
+  --header-h: 60px;
+  --page-pad-x: clamp(10px, 3vw, 28px);
+  --page-pad-y: clamp(12px, 2.5vw, 40px);
+  --touch-min: 44px;
   --chart-text: #111318;
   --header-bg: #111318;
   --header-text: #ffffff;
@@ -108,25 +113,61 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  overflow-x: clip;
+}
 body {
   font-family: var(--ff);
   background: var(--bg);
   color: var(--ink);
   min-height: 100vh;
+  min-height: 100dvh;
   padding-bottom: 20px;
+  overflow-x: clip;
 }
-@media (max-width: 767px) { body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px); } }
+@media (max-width: 767px) {
+  body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 12px); }
+}
 @media (min-width: 768px) { body { padding-bottom: 48px; } }
 
+img, svg, video, canvas { max-width: 100%; height: auto; }
+button, input, select, textarea { font: inherit; }
+
 /* HEADER */
-header {
-  height: 60px; background: var(--header-bg);
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 20px; position: sticky; top: 0; z-index: 200;
+.app-header {
+  background: var(--header-bg);
+  position: sticky; top: 0; z-index: 200;
   padding-top: env(safe-area-inset-top);
+  padding-left: max(var(--page-pad-x), env(safe-area-inset-left));
+  padding-right: max(var(--page-pad-x), env(safe-area-inset-right));
+  box-shadow: 0 1px 0 rgba(0,0,0,.06);
 }
-.logo { font-size: 1.25rem; font-weight: 800; color: var(--header-text); letter-spacing: -.5px; }
+.hdr-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: var(--header-h);
+  padding: 8px 0;
+}
+.hdr-row-sync { min-height: auto; padding: 0 0 10px; }
+.hdr-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.logo {
+  font-size: clamp(1.05rem, 2.8vw, 1.35rem);
+  font-weight: 800;
+  color: var(--header-text);
+  letter-spacing: -.5px;
+  flex-shrink: 0;
+}
 .logo em { color: var(--logo-em); font-style: normal; }
 .hdr-date { font-size: .72rem; color: var(--header-text-3); display: none; }
 @media (min-width: 480px) { .hdr-date { display: block; } }
@@ -150,12 +191,21 @@ header {
   cursor: pointer; transition: all .2s; white-space: nowrap;
 }
 .hdr-logout:hover { background: rgba(239,68,68,.2); transform: translateY(-1px); }
-.hdr-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+.hdr-meta { display: flex; flex-direction: column; align-items: stretch; gap: 6px; width: 100%; }
 .hdr-sync {
-  font-size:.72rem; color: var(--header-text-2);
-  padding: 6px 10px; border-radius: 999px;
-  background: var(--header-btn-bg); border:1px solid var(--header-btn-border);
+  font-size: clamp(.65rem, 2vw, .72rem);
+  color: var(--header-text-2);
+  padding: 8px 12px;
+  border-radius: 999px;
+  background: var(--header-btn-bg);
+  border: 1px solid var(--header-btn-border);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  min-height: 36px;
+  display: flex;
+  align-items: center;
 }
 .hdr-sync.ok { color: var(--sync-ok); background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.30); }
 .hdr-sync.fail { color: var(--sync-fail); background: rgba(220,38,38,.12); border-color: rgba(220,38,38,.30); }
@@ -185,39 +235,95 @@ header {
 .theme-option:hover { background: var(--border); }
 .theme-option.active { background: var(--green-lt); color: var(--green); font-weight: 600; }
 
-@media (max-width: 860px) {
-  header {
-    flex-wrap: wrap; align-items: flex-start; gap: 10px; height: auto;
-    padding: 10px 16px 12px; justify-content: flex-start;
-  }
-  .hdr-meta { width: 100%; align-items: flex-start; gap: 8px; }
-  .hdr-reset, .hdr-theme { flex: 1; min-width: 140px; }
-  .hdr-theme { justify-content: center; }
+@media (max-width: 520px) {
+  .hdr-row-top { flex-wrap: wrap; }
+  .hdr-actions { width: 100%; }
+  .hdr-reset, .hdr-theme, .hdr-logout { flex: 1 1 calc(50% - 4px); min-width: 0; justify-content: center; }
+  .hdr-theme #themeLabel { display: none; }
+}
+@media (min-width: 521px) and (max-width: 860px) {
+  .hdr-reset, .hdr-theme { min-width: 120px; }
+}
+@media (min-width: 861px) {
+  .app-header { padding-bottom: 4px; }
+  .hdr-row-sync { padding-bottom: 12px; }
+  .hdr-meta { width: auto; }
+  .hdr-sync { width: auto; max-width: none; }
 }
 
-@media (min-width: 861px) {
-  header { flex-wrap: nowrap; align-items: center; justify-content: space-between; }
-  .hdr-meta { width: auto; align-items: center; }
-  .hdr-reset, .hdr-theme { flex: none; min-width: auto; }
-  .hdr-sync { width: auto; }
+/* DESKTOP QUICK NAV */
+.desktop-quick-nav {
+  display: none;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px max(var(--page-pad-x), env(safe-area-inset-left)) 10px max(var(--page-pad-x), env(safe-area-inset-right));
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 180;
+  box-shadow: 0 2px 12px rgba(0,0,0,.04);
 }
+.dq-link {
+  flex: 1 1 auto;
+  min-height: var(--touch-min);
+  min-width: 0;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-family: var(--ff);
+  font-size: clamp(.72rem, 1.8vw, .82rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background .2s, color .2s, border-color .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.dq-link:hover { border-color: var(--green-2); color: var(--green); background: var(--green-lt); }
+@media (min-width: 768px) { .desktop-quick-nav { display: flex; } }
 
 /* BOTTOM NAV */
 .bottom-nav {
-  display: flex; position: fixed; bottom: 0; left: 0; right: 0;
-  height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom);
-  background: var(--surface); border-top: 1px solid var(--border);
-  z-index: 200; box-shadow: 0 -4px 20px rgba(0,0,0,.06);
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: calc(var(--nav-h) + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 200;
+  box-shadow: 0 -4px 20px rgba(0,0,0,.06);
 }
 @media (min-width: 768px) { .bottom-nav { display: none; } }
 .nav-btn {
-  flex: 1; display: flex; flex-direction: column; align-items: center;
-  justify-content: center; gap: 3px; border: none; background: none;
-  cursor: pointer; color: var(--ink-3); font-family: var(--ff);
-  font-size: .62rem; font-weight: 600; letter-spacing: .3px;
-  text-transform: uppercase; transition: all .3s ease; padding: 8px 4px;
-  -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--ink-3);
+  font-family: var(--ff);
+  font-size: clamp(.55rem, 2.2vw, .62rem);
+  font-weight: 600;
+  letter-spacing: .2px;
+  text-transform: uppercase;
+  transition: color .2s ease, transform .2s ease;
+  padding: 6px 2px;
+  min-height: var(--touch-min);
+  -webkit-tap-highlight-color: transparent;
+  position: relative;
+  overflow: hidden;
 }
+.nav-label { line-height: 1.1; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 .nav-btn::before {
   content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 2px;
   background: var(--green); transition: all .3s ease; transform: translateX(-50%);
@@ -225,16 +331,21 @@ header {
 .nav-btn:hover::before, .nav-btn.active::before { width: 80%; }
 .nav-btn:hover { color: var(--green); transform: translateY(-2px); }
 .nav-btn.active { color: var(--green); }
-.nav-icon { font-size: 1.25rem; line-height: 1; }
+.nav-icon { font-size: clamp(1.1rem, 4vw, 1.25rem); line-height: 1; flex-shrink: 0; }
 
 /* LAYOUT */
-main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%, 1060px); }
-@media (min-width: 768px) { main { padding: 30px 24px 0; } }
-@media (max-width: 767px) { main { min-height: auto; } }
-@media (max-width: 420px) { main { padding: 12px 10px 0; } }
-.tab-section { display: none; }
+main {
+  max-width: 1060px;
+  margin: 0 auto;
+  padding: var(--page-pad-y) var(--page-pad-x) 0;
+  width: min(100%, 1060px);
+}
+.tab-section { display: none; scroll-margin-top: 88px; }
 .tab-section.active { display: block; }
-@media (min-width: 768px) { .tab-section { display: block !important; } }
+@media (min-width: 768px) {
+  main { padding-top: clamp(20px, 3vw, 36px); }
+  .tab-section { display: block !important; scroll-margin-top: 100px; }
+}
 
 /* KPI GRID */
 .kpi-grid {
@@ -337,7 +448,78 @@ main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%,
 @media (max-width: 860px) { .fields { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); } }
 @media (max-width: 560px) { .fields { grid-template-columns: 1fr; } }
 .field { display: flex; flex-direction: column; gap: 5px; }
-.field.span2 { grid-column: 1/-1; }
+.field.span2 { grid-column: 1 / -1; }
+
+/* Period filter & search */
+.period-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+}
+.period-btn {
+  flex: 1 1 0;
+  min-width: min(100%, 88px);
+  min-height: var(--touch-min);
+  padding: 10px 8px;
+  border: 2px solid var(--border);
+  border-radius: var(--r-s);
+  background: var(--surface);
+  color: var(--ink);
+  font-family: var(--ff);
+  font-size: clamp(.78rem, 2.5vw, .85rem);
+  font-weight: 400;
+  cursor: pointer;
+  transition: border-color .2s, color .2s, background .2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.period-btn.active {
+  border-color: var(--blue);
+  color: var(--blue);
+  font-weight: 600;
+  background: var(--blue-lt);
+}
+.search-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+.search-input {
+  flex: 1 1 200px;
+  min-width: 0;
+  min-height: var(--touch-min);
+  padding: 10px 14px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-s);
+  font-family: var(--ff);
+  font-size: .88rem;
+  color: var(--ink);
+  background: var(--surface);
+  outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.search-input:focus {
+  border-color: var(--green-2);
+  box-shadow: 0 0 0 3px rgba(16,185,129,.12);
+}
+.month-summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 720px) {
+  .month-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 420px) {
+  .month-summary-grid { grid-template-columns: 1fr; }
+}
+.stats-table-row {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.stats-table-row .exp-name { font-size: .95rem; }
+.stats-table-row .exp-meta { margin-top: 4px; gap: 8px; flex-wrap: wrap; }
+.stats-table-row .exp-amount-text { font-size: .92rem; }
 
 label {
   font-size: .62rem; font-weight: 700; letter-spacing: .8px;
@@ -356,6 +538,11 @@ input:focus, select:focus {
   border-color: var(--green-2); background: var(--surface);
   box-shadow: 0 0 0 3px rgba(16,185,129,.12);
   transform: scale(1.01);
+}
+@media (max-width: 767px) {
+  input, select, .search-input {
+    font-size: 16px;
+  }
 }
 select {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
@@ -398,15 +585,13 @@ select {
 .export-buttons {
   display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
 }
+.export-pdf-wrap { margin-bottom: 12px; }
 @media (max-width: 480px) {
   .export-buttons { flex-direction: column; align-items: stretch; }
   .export-buttons .btn { width: 100%; }
 }
 
 .pdf-report-root {
-  position: fixed;
-  left: -10000px;
-  top: 0;
   width: 794px;
   padding: 28px 32px;
   background: #ffffff;
@@ -414,7 +599,7 @@ select {
   font-family: 'Manrope', -apple-system, sans-serif;
   font-size: 12px;
   line-height: 1.45;
-  z-index: -1;
+  box-sizing: border-box;
 }
 .pdf-report-root h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
 .pdf-report-root h2 { font-size: 15px; font-weight: 700; margin: 20px 0 10px; border-bottom: 2px solid #e8eaed; padding-bottom: 6px; }
@@ -596,7 +781,7 @@ select {
   display: flex; align-items: center; justify-content: center;
 }
 @media (min-width: 768px) { .chart-wrap { height: 240px; } }
-@media (max-width: 767px) { .chart-wrap { height: 200px; } }
+@media (max-width: 767px) { .chart-wrap { height: min(280px, 58vw); min-height: 200px; } }
 @media (max-width: 560px) { .chart-wrap { height: 180px; } }
 @media (max-width: 420px) { .chart-wrap { height: 160px; } }
 
@@ -614,13 +799,25 @@ select {
 
 /* TOAST */
 .toast {
-  position: fixed; bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom));
-  left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--ink); color: #fff; font-size: .8rem; font-weight: 500;
-  padding: 12px 20px; border-radius: 100px; opacity: 0;
-  transition: all .4s ease; pointer-events: none;
-  z-index: 999; white-space: nowrap; box-shadow: var(--sh-lg);
-  animation: slideInUp .3s ease-out;
+  position: fixed;
+  bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: var(--ink);
+  color: #fff;
+  font-size: .8rem;
+  font-weight: 500;
+  padding: 12px 20px;
+  border-radius: 100px;
+  opacity: 0;
+  transition: all .4s ease;
+  pointer-events: none;
+  z-index: 999;
+  max-width: min(calc(100vw - 32px), 420px);
+  text-align: center;
+  white-space: normal;
+  line-height: 1.35;
+  box-shadow: var(--sh-lg);
 }
 .toast.show {
   opacity: 1; transform: translateX(-50%) translateY(0);
@@ -925,33 +1122,151 @@ input:focus, select:focus {
   animation: float 3s ease-in-out infinite;
 }
 
+/* ═══ RESPONSIVE: ROWS, CHARTS, TOUCH ═══ */
+@media (max-width: 480px) {
+  .pay-row, .exp-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .pay-info, .exp-info { flex: 1 1 calc(100% - 48px); min-width: 0; }
+  .pay-amount-text, .exp-amount-text {
+    width: 100%;
+    text-align: right;
+    padding-top: 4px;
+    border-top: 1px dashed var(--border);
+  }
+  .pay-actions, .exp-actions { margin-left: auto; }
+  .exp-meta { flex-wrap: wrap; }
+  .nav-label { font-size: .5rem; }
+}
+@media (max-width: 360px) {
+  .nav-label { display: none; }
+  .nav-btn { gap: 0; }
+  .period-btn-text { display: none; }
+  .period-btn { font-size: 1.1rem; padding: 10px 6px; }
+  .hdr-reset, .hdr-logout { font-size: .7rem; padding: 8px 10px; }
+}
+@media (max-width: 320px) {
+  :root { --page-pad-x: 8px; }
+  .kpi-card { padding: 12px 14px; }
+}
+
+@media (min-width: 481px) and (max-width: 767px) {
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 768px) and (max-width: 1023px) {
+  main { max-width: 100%; }
+  .kpi-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .chart-wrap { height: 220px; }
+}
+
+@media (min-width: 1024px) {
+  .kpi-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  .chart-wrap { height: min(36vh, 160px); }
+  .auth-container { align-items: flex-start; padding-top: 12px; }
+  .bottom-nav { height: calc(56px + env(safe-area-inset-bottom)); }
+  :root { --nav-h: 56px; }
+}
+
+@media (pointer: coarse) {
+  .btn-del, .btn-edit {
+    width: var(--touch-min);
+    height: var(--touch-min);
+  }
+  .collapse-trigger {
+    min-width: var(--touch-min);
+    min-height: var(--touch-min);
+  }
+}
+
+@media (hover: none) {
+  .card:hover, .kpi-card:hover, .pay-row:hover, .exp-row:hover {
+    transform: none;
+    box-shadow: var(--sh);
+  }
+  .btn:hover { transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* MODALS */
 .modal {
-  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,.5); display: none; z-index: 1000;
-  align-items: center; justify-content: center; padding: 20px;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.5);
+  display: none;
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
   backdrop-filter: blur(2px);
-  animation: fadeIn .2s ease-out;
+  -webkit-backdrop-filter: blur(2px);
 }
 .modal.show { display: flex; }
 .modal-content {
-  background: var(--surface); border-radius: var(--r); padding: 24px;
-  max-width: 400px; width: 100%; max-height: 90vh; overflow-y: auto;
+  position: relative;
+  background: var(--surface);
+  border-radius: var(--r);
+  padding: 24px;
+  max-width: min(440px, 100%);
+  width: 100%;
+  max-height: min(90vh, 90dvh);
+  overflow-y: auto;
   box-shadow: var(--sh-lg);
-  animation: bounceIn .3s ease-out;
-  transform-origin: center;
+  -webkit-overflow-scrolling: touch;
 }
-
-.modal-header { margin-bottom: 20px; }
-.modal-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; }
+@media (max-width: 560px) {
+  .modal { align-items: flex-end; padding: 0; }
+  .modal-content {
+    border-radius: var(--r) var(--r) 0 0;
+    max-height: min(92vh, 92dvh);
+    padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+}
+.modal-header { margin-bottom: 20px; padding-right: 36px; }
+.modal-title { font-size: clamp(1.05rem, 4vw, 1.25rem); font-weight: 700; margin-bottom: 4px; }
 .modal-close {
-  position: absolute; top: 16px; right: 16px;
-  background: none; border: none; font-size: 1.5rem; cursor: pointer;
-  color: var(--ink-3); padding: 4px;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: var(--touch-min);
+  height: var(--touch-min);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: none;
+  border-radius: 50%;
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--ink-3);
 }
-.modal-close:hover { color: var(--ink); }
+.modal-close:hover { color: var(--ink); background: var(--border); }
 .modal-body .fields { margin-bottom: 20px; }
-.modal-footer { display: flex; gap: 12px; justify-content: flex-end; }
+.modal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+@media (max-width: 420px) {
+  .modal-footer { flex-direction: column-reverse; }
+  .modal-footer .btn { width: 100%; }
+}
 </style>
 </head>
 <body>
@@ -993,25 +1308,34 @@ input:focus, select:focus {
 <!-- MAIN APP -->
 <div id="mainApp" style="display:none;">
 
-<header>
-  <div class="logo">Fin<em>Flow</em></div>
-  <div class="hdr-meta">
+<header class="app-header">
+  <div class="hdr-row hdr-row-top">
+    <div class="logo">Fin<em>Flow</em></div>
+    <div class="hdr-actions">
+      <div class="hdr-theme" onclick="toggleThemeMenu()">
+        <span>⚙️</span>
+        <span id="themeLabel">Тема</span>
+        <div class="theme-menu" id="themeMenu">
+          <button type="button" class="theme-option" onclick="setTheme('light')">☀️ Светлая</button>
+          <button type="button" class="theme-option" onclick="setTheme('dark')">🌙 Тёмная</button>
+          <button type="button" class="theme-option" onclick="setTheme('auto')">🔄 Авто</button>
+        </div>
+      </div>
+      <button type="button" class="hdr-reset" onclick="resetAll()">↺ Сбросить</button>
+      <button type="button" class="hdr-logout" onclick="logout()">🚪 Выйти</button>
+    </div>
+  </div>
+  <div class="hdr-row hdr-row-sync hdr-meta">
     <div class="hdr-sync pending" id="dbSyncStatus">Проверка связи...</div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center;">
-    <div class="hdr-theme" onclick="toggleThemeMenu()">
-      <span>⚙️</span>
-      <span id="themeLabel">Тема</span>
-      <div class="theme-menu" id="themeMenu">
-        <button class="theme-option" onclick="setTheme('light')">☀️ Светлая</button>
-        <button class="theme-option" onclick="setTheme('dark')">🌙 Тёмная</button>
-        <button class="theme-option" onclick="setTheme('auto')">🔄 Авто</button>
-      </div>
-    </div>
-    <button class="hdr-reset" onclick="resetAll()">↺ Сбросить</button>
-    <button class="hdr-logout" onclick="logout()">🚪 Выйти</button>
-  </div>
 </header>
+
+<nav class="desktop-quick-nav" id="desktopQuickNav" aria-label="Навигация по разделам">
+  <button type="button" class="dq-link" onclick="goToSection('overview')">📈 Обзор</button>
+  <button type="button" class="dq-link" onclick="goToSection('income')">💰 Доход</button>
+  <button type="button" class="dq-link" onclick="goToSection('stats')">📊 Статистика</button>
+  <button type="button" class="dq-link" onclick="goToSection('expenses')">🧾 Расходы</button>
+</nav>
 
 <main>
 
@@ -1082,10 +1406,10 @@ input:focus, select:focus {
       <div class="fields">
         <div class="field span2">
           <label>Период</label>
-          <div style="display:flex;gap:8px;margin-bottom:8px;">
-            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;" id="filterWeek" onclick="setPeriodFilter('week')">📆 Неделя</button>
-            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--blue);border-radius:6px;background:var(--surface);color:var(--blue);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;font-weight:600;" id="filterMonth" onclick="setPeriodFilter('month')">📅 Месяц</button>
-            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;" id="filterYear" onclick="setPeriodFilter('year')">📊 Год</button>
+          <div class="period-filter" role="group" aria-label="Период">
+            <button type="button" class="period-btn" id="filterWeek" onclick="setPeriodFilter('week')">📆 <span class="period-btn-text">Неделя</span></button>
+            <button type="button" class="period-btn active" id="filterMonth" onclick="setPeriodFilter('month')">📅 <span class="period-btn-text">Месяц</span></button>
+            <button type="button" class="period-btn" id="filterYear" onclick="setPeriodFilter('year')">📊 <span class="period-btn-text">Год</span></button>
           </div>
         </div>
         <div class="field span2">
@@ -1383,8 +1707,8 @@ input:focus, select:focus {
     </div>
     <div class="collapse-body closed" id="fullExpBody">
       <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
-        <div style="display:flex;gap:10px;margin-bottom:12px;">
-          <input type="text" id="expSearchInput" placeholder="🔍 Поиск по названию..." style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--ff);color:var(--ink);background:var(--surface);" onkeyup="filterExpenses()" />
+        <div class="search-row">
+          <input type="search" class="search-input" id="expSearchInput" placeholder="🔍 Поиск по названию..." enterkeyhint="search" autocomplete="off" onkeyup="filterExpenses()" />
         </div>
         <div id="fullList" class="exp-list"></div>
         <div id="fullEmpty" class="empty-state" style="display:none">
@@ -1400,8 +1724,8 @@ input:focus, select:focus {
 <!-- ══════ TAB: СТАТИСТИКА ══════ -->
 <div id="tab-stats" class="tab-section">
   <div class="section-title">Статистика расходов</div>
-  <div style="margin-bottom:12px;">
-    <button class="btn btn-green" type="button" onclick="exportReportPDF()" style="width:100%;">
+  <div class="export-pdf-wrap">
+    <button class="btn btn-green btn-full" type="button" onclick="exportReportPDF()">
       📄 Скачать отчёт (PDF)
     </button>
   </div>
@@ -1469,17 +1793,17 @@ input:focus, select:focus {
 </main>
 
 <nav class="bottom-nav">
-  <button class="nav-btn active" id="nav-overview"  onclick="switchTab('overview')">
-    <span class="nav-icon">📈</span>Обзор
+  <button class="nav-btn active" id="nav-overview" onclick="switchTab('overview')">
+    <span class="nav-icon">📈</span><span class="nav-label">Обзор</span>
   </button>
-  <button class="nav-btn" id="nav-income"   onclick="switchTab('income')">
-    <span class="nav-icon">💰</span>Доход
+  <button class="nav-btn" id="nav-income" onclick="switchTab('income')">
+    <span class="nav-icon">💰</span><span class="nav-label">Доход</span>
   </button>
   <button class="nav-btn" id="nav-stats" onclick="switchTab('stats')">
-    <span class="nav-icon">📊</span>Статистика
+    <span class="nav-icon">📊</span><span class="nav-label">Статистика</span>
   </button>
   <button class="nav-btn" id="nav-expenses" onclick="switchTab('expenses')">
-    <span class="nav-icon">🧾</span>Расходы
+    <span class="nav-icon">🧾</span><span class="nav-label">Расходы</span>
   </button>
 </nav>
 
@@ -1527,9 +1851,74 @@ function isMissingTagsColumnError(error) {
   return error?.code === 'PGRST204' && String(error.message || '').includes("'tags'");
 }
 
+let dbExpenseTagsSupported = null;
+
+function expenseTagsStorageKey() {
+  return `finflow-expense-tags:${getUserId()}`;
+}
+
+function loadExpenseTagsMap() {
+  try {
+    return JSON.parse(localStorage.getItem(expenseTagsStorageKey()) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveExpenseTagsMap(map) {
+  try {
+    localStorage.setItem(expenseTagsStorageKey(), JSON.stringify(map));
+  } catch (_) {}
+}
+
+function persistExpenseTags(id, tags) {
+  const map = loadExpenseTagsMap();
+  const list = parseExpenseTags(tags);
+  if (list.length) map[id] = list;
+  else delete map[id];
+  saveExpenseTagsMap(map);
+}
+
+function applyStoredExpenseTags(expense) {
+  if (!expense || expense.id == null) return expense;
+  const stored = loadExpenseTagsMap()[expense.id];
+  if (stored) expense.tags = parseExpenseTags(stored);
+  else if (!expense.tags) expense.tags = parseExpenseTags(expense.tags);
+  return expense;
+}
+
+function mergeExpensesWithStoredTags(expenses) {
+  return (expenses || []).map(e => applyStoredExpenseTags({ ...e, tags: parseExpenseTags(e.tags) }));
+}
+
+async function probeExpenseTagsColumn() {
+  try {
+    const { error } = await supabaseClient.from('expenses').select('tags').limit(1);
+    if (isMissingTagsColumnError(error)) {
+      dbExpenseTagsSupported = false;
+    } else {
+      dbExpenseTagsSupported = !error;
+    }
+  } catch {
+    dbExpenseTagsSupported = false;
+  }
+  return dbExpenseTagsSupported;
+}
+
+function canSyncExpenseTags() {
+  return dbExpenseTagsSupported === true;
+}
+
 async function insertExpense(row) {
+  if ('tags' in row && !canSyncExpenseTags()) {
+    const { tags, ...rowWithoutTags } = row;
+    const result = await supabaseClient.from('expenses').insert([rowWithoutTags]).select();
+    if (!result.error && result.data?.[0]) result.data[0].tags = tags || [];
+    return result;
+  }
   let result = await supabaseClient.from('expenses').insert([row]).select();
   if (isMissingTagsColumnError(result.error) && 'tags' in row) {
+    dbExpenseTagsSupported = false;
     const { tags, ...rowWithoutTags } = row;
     result = await supabaseClient.from('expenses').insert([rowWithoutTags]).select();
     if (!result.error && result.data?.[0]) result.data[0].tags = tags || [];
@@ -1538,10 +1927,17 @@ async function insertExpense(row) {
 }
 
 async function updateExpense(id, row) {
+  if ('tags' in row && !canSyncExpenseTags()) {
+    const { tags, ...rowWithoutTags } = row;
+    const result = await supabaseClient.from('expenses').update(rowWithoutTags).eq('id', id);
+    return { ...result, _localTags: tags || [] };
+  }
   let result = await supabaseClient.from('expenses').update(row).eq('id', id);
   if (isMissingTagsColumnError(result.error) && 'tags' in row) {
+    dbExpenseTagsSupported = false;
     const { tags, ...rowWithoutTags } = row;
     result = await supabaseClient.from('expenses').update(rowWithoutTags).eq('id', id);
+    return { ...result, _localTags: tags || [] };
   }
   return result;
 }
@@ -1740,7 +2136,8 @@ async function loadData() {
     if (expensesError) throw expensesError;
     
     S.payments = payments || [];
-    S.expenses = (expenses || []).map(e => ({ ...e, tags: parseExpenseTags(e.tags) }));
+    await probeExpenseTagsColumn();
+    S.expenses = mergeExpensesWithStoredTags(expenses);
     // Only throw if savings table error is not 404 (table not found)
     if (savingsError && savingsError.code !== 'PGRST205') throw savingsError;
     S.savings = (savingsError && savingsError.code === 'PGRST205') ? [] : (savings || []);
@@ -1800,8 +2197,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (S._bonus) el('bonus').value      = S._bonus;
   if (S.plannedIncome > 0) showIncomeResult();
 
+  lastLayoutMode = getLayoutMode();
   checkDesktop();
-  window.addEventListener('resize', checkDesktop);
+  window.addEventListener('resize', handleLayoutChange);
+  window.addEventListener('orientationchange', () => setTimeout(handleLayoutChange, 150));
 });
 
 let currentMonthKey = null;
@@ -1958,8 +2357,75 @@ function updateMonthSummary(monthKey) {
 }
 
 function checkDesktop() {
-  if (window.innerWidth >= 768)
+  if (window.innerWidth >= 768) {
     document.querySelectorAll('.tab-section').forEach(s => s.classList.add('active'));
+  }
+}
+
+function getLayoutMode() {
+  const w = window.innerWidth;
+  if (w < 360) return 'xs';
+  if (w < 768) return 'sm';
+  if (w < 1024) return 'md';
+  if (w < 1280) return 'lg';
+  return 'xl';
+}
+
+let lastLayoutMode = null;
+
+function handleLayoutChange() {
+  const mode = getLayoutMode();
+  if (mode === lastLayoutMode) return;
+  lastLayoutMode = mode;
+  checkDesktop();
+  if (isAuthenticated && typeof refresh === 'function') refresh();
+}
+
+function goToSection(name) {
+  if (window.innerWidth < 768) {
+    switchTab(name);
+    return;
+  }
+  const section = el('tab-' + name);
+  if (section) section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function isCompactChartView() {
+  return window.innerWidth < 768;
+}
+
+function getChartLegendOptions(chartTextColor) {
+  const compact = isCompactChartView();
+  return {
+    position: compact ? 'bottom' : 'right',
+    labels: {
+      font: { family: "'Manrope',sans-serif", size: compact ? 10 : 11, weight: '600' },
+      padding: compact ? 6 : 12,
+      usePointStyle: true,
+      pointStyleWidth: compact ? 8 : 8,
+      color: chartTextColor,
+      boxWidth: compact ? 10 : 12
+    }
+  };
+}
+
+function getChartScaleOptions(compact) {
+  return {
+    x: {
+      ticks: {
+        color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim(),
+        maxRotation: compact ? 45 : 0,
+        autoSkip: true,
+        maxTicksLimit: compact ? 6 : 12
+      }
+    },
+    y: {
+      ticks: {
+        color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim(),
+        maxTicksLimit: compact ? 5 : 8
+      }
+    }
+  };
 }
 
 /* ═══ TABS ════════════════════════════════════════ */
@@ -2049,7 +2515,7 @@ function loadLocalCache() {
     const data = parsed && parsed.data ? parsed.data : null;
     if (!data) return false;
     S.payments = Array.isArray(data.payments) ? data.payments : [];
-    S.expenses = Array.isArray(data.expenses) ? data.expenses : [];
+    S.expenses = mergeExpensesWithStoredTags(Array.isArray(data.expenses) ? data.expenses : []);
     S.savings = Array.isArray(data.savings) ? data.savings : [];
     return true;
   } catch (_) {
@@ -2268,9 +2734,13 @@ async function addExpense() {
 
   try {
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
-    const { data, error } = await insertExpense(expenseRowForDb({ name, cat, amount, date, tags }, true));
+    const includeTags = canSyncExpenseTags();
+    const { data, error } = await insertExpense(expenseRowForDb({ name, cat, amount, date, tags }, includeTags));
     if (error) throw error;
-    S.expenses.push({ ...data[0], tags: parseExpenseTags(data[0].tags) });
+    const saved = { ...data[0], tags: parseExpenseTags(data[0].tags) };
+    if (!includeTags && tags.length) saved.tags = tags;
+    persistExpenseTags(saved.id, saved.tags);
+    S.expenses.push(saved);
     el('expName').value   = '';
     el('expAmount').value = '';
     el('expTags').value   = '';
@@ -2291,6 +2761,7 @@ async function deleteExpense(id) {
     const { error } = await supabaseClient.from('expenses').delete().eq('id', id);
     if (error) throw error;
     S.expenses = S.expenses.filter(e => e.id !== id);
+    persistExpenseTags(id, []);
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
     saveLocalCache();
@@ -2333,17 +2804,13 @@ function expRowHTML(e, withDelete) {
 /* ═══ SEARCH & FILTER ════════════════════════════ */
 function setPeriodFilter(period) {
   currentPeriodFilter = period;
-  
-  // Обновляем активную кнопку
+
   ['Week', 'Month', 'Year'].forEach(p => {
     const btn = el(`filter${p}`);
     if (!btn) return;
-    const isActive = period === p.toLowerCase();
-    btn.style.borderColor = isActive ? `var(--${p === 'Month' ? 'blue' : 'border'})` : 'var(--border)';
-    btn.style.color = isActive ? `var(--${p === 'Month' ? 'blue' : 'ink'})` : 'var(--ink)';
-    btn.style.fontWeight = isActive ? '600' : '400';
+    btn.classList.toggle('active', period === p.toLowerCase());
   });
-  
+
   localStorage.setItem('finflow-period', period);
   refresh();
 }
@@ -2436,6 +2903,7 @@ function renderStatsCategoryChart(categoryStats) {
   const data = categoryStats.map(item => item.avg);
   const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
   if (statsChart) statsChart.destroy();
+  const compact = isCompactChartView();
   statsChart = new Chart(canvas, {
     type: 'bar',
     data: { labels, datasets:[{ label:'Средний расход', data, backgroundColor: colors, borderColor: colors, borderWidth: 1 }] },
@@ -2444,10 +2912,7 @@ function renderStatsCategoryChart(categoryStats) {
         legend: { display:false },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
       },
-      scales: {
-        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } },
-        y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } }
-      }
+      scales: getChartScaleOptions(compact)
     }
   });
 }
@@ -2468,18 +2933,16 @@ function renderStatsTrendChart(trendData) {
   const data = trendData.map(item => item.total);
   const color = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim();
   if (trendChart) trendChart.destroy();
+  const compactTrend = isCompactChartView();
   trendChart = new Chart(canvas, {
     type: 'line',
-    data: { labels, datasets:[{ label:'Расходы', data, borderColor: color, backgroundColor: 'rgba(59,130,246,.2)', fill:true, tension:0.35, pointRadius:4 }] },
+    data: { labels, datasets:[{ label:'Расходы', data, borderColor: color, backgroundColor: 'rgba(59,130,246,.2)', fill:true, tension:0.35, pointRadius: compactTrend ? 3 : 4 }] },
     options: {
       responsive:true, maintainAspectRatio:false, plugins: {
         legend: { display:false },
         tooltip: { callbacks: { label: ctx => ` ${fmt(ctx.raw)}` } }
       },
-      scales: {
-        x: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } },
-        y: { ticks: { color: getComputedStyle(document.documentElement).getPropertyValue('--chart-text').trim() } }
-      }
+      scales: getChartScaleOptions(compactTrend)
     }
   });
 }
@@ -2492,16 +2955,16 @@ function renderStatsTable(categoryStats) {
     return;
   }
   table.innerHTML = categoryStats.map(item => `
-    <div class="exp-row" style="padding:12px 0;border-bottom:1px solid var(--border);">
-      <div class="exp-info" style="flex:1;min-width:0;">
-        <div class="exp-name" style="font-size:.95rem;">${esc(item.cat)}</div>
-        <div class="exp-meta" style="margin-top:4px;gap:8px;">
+    <div class="exp-row stats-table-row">
+      <div class="exp-info">
+        <div class="exp-name">${esc(item.cat)}</div>
+        <div class="exp-meta">
           <span class="exp-date-text">Средний: ${fmt(item.avg)}</span>
           <span class="exp-date-text">Всего: ${fmt(item.total)}</span>
           <span class="exp-date-text">Записей: ${item.count}</span>
         </div>
       </div>
-      <div class="exp-amount-text" style="font-size:.92rem;">${fmt(item.total)}</div>
+      <div class="exp-amount-text">${fmt(item.total)}</div>
     </div>
   `).join('');
 }
@@ -2662,22 +3125,14 @@ function renderChart(totalExp, monthKey) {
   const tooltipTextColor = document.documentElement.hasAttribute('data-theme') ? chartTextColor : getComputedStyle(document.documentElement).getPropertyValue('--ink').trim();
   const tooltipBgColor = document.documentElement.hasAttribute('data-theme') ? 'rgba(0,0,0,.78)' : '#ffffff';
   const totalForTooltip = filteredExpenses.reduce((sum, e) => sum + e.amount, 0) || 1;
+  const compactDoughnut = isCompactChartView();
   chart = new Chart(canvas, {
     type: 'doughnut',
     data: { labels, datasets:[{ data, backgroundColor:colors, borderWidth:4, borderColor:'#fff', hoverOffset:10 }] },
     options: {
-      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      responsive:true, maintainAspectRatio:false, cutout: compactDoughnut ? '62%' : '68%',
       plugins: {
-        legend: {
-          position:'right',
-          labels: {
-            font: { family:"'Manrope',sans-serif", size:11, weight:'600' },
-            padding:12,
-            usePointStyle:true,
-            pointStyleWidth:8,
-            color: chartTextColor
-          }
-        },
+        legend: getChartLegendOptions(chartTextColor),
         tooltip: {
           callbacks: {
             label: ctx => `  ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/totalForTooltip*100)}%)`
@@ -2707,6 +3162,7 @@ async function resetAll() {
     await supabaseClient.from('expenses').delete().neq('id', 0);
     await supabaseClient.from('savings').delete().neq('id', 0);
     S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[], savings:[] };
+    saveExpenseTagsMap({});
     ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
     el('workDays').value = '22';
     el('incomeResult').style.display = 'none';
@@ -2825,8 +3281,9 @@ async function saveExpenseEdit() {
 
   try {
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
-    const { error } = await updateExpense(editingExpenseId, expenseRowForDb({ name, cat, amount, date, tags }, true));
-    if (error) throw error;
+    const includeTags = canSyncExpenseTags();
+    const updateResult = await updateExpense(editingExpenseId, expenseRowForDb({ name, cat, amount, date, tags }, includeTags));
+    if (updateResult.error) throw updateResult.error;
 
     const expense = S.expenses.find(e => e.id === editingExpenseId);
     if (expense) {
@@ -2835,6 +3292,7 @@ async function saveExpenseEdit() {
       expense.amount = amount;
       expense.date = date;
       expense.tags = tags;
+      persistExpenseTags(editingExpenseId, tags);
     }
 
     closeModal('editExpenseModal');
@@ -3036,6 +3494,109 @@ function exportSavingsCSV() {
   downloadCSV(data, `накопления_${suffix}.csv`);
 }
 
+/* Стили отчёта для iframe (дублируют .pdf-report-* из <style>, чтобы html2canvas видел чистый layout) */
+const PDF_EMBED_STYLES = `
+body{margin:0;background:#fff;}
+.pdf-report-root{width:794px;max-width:100%;padding:28px 32px;background:#fff;color:#111318;font-family:Manrope,Segoe UI,sans-serif;font-size:12px;line-height:1.45;box-sizing:border-box;}
+.pdf-report-root h1{font-size:22px;font-weight:800;margin:0 0 4px;}
+.pdf-report-root h2{font-size:15px;font-weight:700;margin:20px 0 10px;border-bottom:2px solid #e8eaed;padding-bottom:6px;}
+.pdf-report-root h3{font-size:13px;font-weight:700;margin:0 0 8px;color:#374151;}
+.pdf-report-meta{color:#6b7280;font-size:11px;margin-bottom:16px;}
+.pdf-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+.pdf-kpi{border:1px solid #e8eaed;border-radius:10px;padding:10px 12px;background:#fafbfc;}
+.pdf-kpi-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.pdf-kpi-val{font-size:16px;font-weight:700;}
+.pdf-kpi-val.g{color:#059669;}
+.pdf-kpi-val.r{color:#dc2626;}
+.pdf-kpi-val.b{color:#2563eb;}
+.pdf-chart-block{margin:14px 0;}
+.pdf-chart-block img{display:block;width:100%;max-height:280px;object-fit:contain;}
+.pdf-chart-empty{color:#9ca3af;font-style:italic;margin:8px 0 16px;}
+.pdf-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;}
+.pdf-table th,.pdf-table td{border:1px solid #e8eaed;padding:6px 8px;text-align:left;}
+.pdf-table th{background:#f4f5f7;font-weight:700;}
+.pdf-table td.num{text-align:right;white-space:nowrap;}
+.pdf-footer{margin-top:20px;padding-top:10px;border-top:1px solid #e8eaed;color:#9ca3af;font-size:10px;}
+`;
+
+function getJsPDFConstructor() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  if (typeof window.jsPDF !== 'undefined') return window.jsPDF;
+  return null;
+}
+
+async function renderReportNodeToPdf(reportEl, filename) {
+  const html2canvasFn = window.html2canvas;
+  const JsPDF = getJsPDFConstructor();
+  if (!html2canvasFn || !JsPDF) throw new Error('PDF libraries not loaded');
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = 'position:fixed;left:0;top:0;width:830px;height:95vh;max-height:5600px;border:0;opacity:0.01;pointer-events:none;z-index:2147483647;';
+  document.body.appendChild(iframe);
+
+  let canvas;
+  try {
+    const idoc = iframe.contentDocument;
+    idoc.open();
+    idoc.write('<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">');
+    idoc.write('<link rel="preconnect" href="https://fonts.googleapis.com">');
+    idoc.write('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
+    idoc.write('<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">');
+    idoc.write('<style>' + PDF_EMBED_STYLES + '</style></head><body></body></html>');
+    idoc.close();
+
+    idoc.body.appendChild(idoc.importNode(reportEl, true));
+
+    if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready.catch(() => {});
+    await new Promise(r => setTimeout(r, 280));
+
+    const node = idoc.body.firstElementChild;
+    if (!node) throw new Error('PDF mount empty');
+
+    void node.offsetWidth;
+    void node.offsetHeight;
+
+    canvas = await html2canvasFn(node, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      logging: false,
+      useCORS: true,
+      allowTaint: false
+    });
+
+    if (!canvas.width || !canvas.height) {
+      throw new Error('Empty canvas');
+    }
+  } finally {
+    iframe.remove();
+  }
+
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const margin = 8;
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const pdfUsableHeight = pageHeight - margin * 2;
+  const imgWidth = pageWidth - margin * 2;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  let heightLeft = imgHeight;
+  let position = margin;
+
+  pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+  heightLeft -= pdfUsableHeight;
+
+  while (heightLeft > 0) {
+    position = margin - (imgHeight - heightLeft);
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+    heightLeft -= pdfUsableHeight;
+  }
+
+  pdf.save(filename);
+}
+
 function chartToPdfImage(chartInst) {
   if (!chartInst) return null;
   try {
@@ -3140,8 +3701,12 @@ function buildPdfReportElement() {
 }
 
 async function exportReportPDF() {
-  if (typeof html2pdf === 'undefined') {
-    showToast('❌ Библиотека PDF не загружена');
+  if (typeof window.html2canvas === 'undefined') {
+    showToast('❌ Не загружена библиотека html2canvas');
+    return;
+  }
+  if (!getJsPDFConstructor()) {
+    showToast('❌ Не загружена библиотека jsPDF');
     return;
   }
 
@@ -3150,33 +3715,20 @@ async function exportReportPDF() {
   renderStats();
 
   if (document.fonts && document.fonts.ready) {
-    await document.fonts.ready;
+    await document.fonts.ready.catch(() => {});
   }
-  await new Promise(resolve => setTimeout(resolve, 450));
+  await new Promise(resolve => setTimeout(resolve, 500));
 
   const reportEl = buildPdfReportElement();
-  document.body.appendChild(reportEl);
-
   const suffix = (currentMonthKey || getMonthKey(todayISO())).replace('-', '_');
   const filename = `FinFlow_отчёт_${suffix}.pdf`;
 
-  const opt = {
-    margin: [12, 12, 12, 12],
-    filename,
-    image: { type: 'jpeg', quality: 0.92 },
-    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
-    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-    pagebreak: { mode: ['css', 'legacy'], avoid: ['.pdf-chart-block', '.pdf-kpi'] }
-  };
-
   try {
-    await html2pdf().set(opt).from(reportEl).save();
+    await renderReportNodeToPdf(reportEl, filename);
     showToast('✅ PDF скачан');
   } catch (e) {
     console.error('PDF export error:', e);
     showToast('❌ Ошибка создания PDF');
-  } finally {
-    reportEl.remove();
   }
 }
 
