@@ -1464,6 +1464,46 @@ const CAT_COLORS = {
   'Не обязательные расходы':'#059669', 'Транспорт':'#ec4899', 'Мобильная связь':'#3b82f6', 'Домашний интернет':'#10b981', 'VPN':'#f59e0b', 'Подписки':'#7c3aed', 'Другое':'#64748b'
 };
 
+function parseExpenseTags(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map(t => String(t).trim()).filter(Boolean);
+  if (typeof raw === 'string') return raw.split(',').map(t => t.trim()).filter(Boolean);
+  return [];
+}
+
+function parseTagsInput(str) {
+  return str ? str.split(',').map(t => t.trim()).filter(t => t) : [];
+}
+
+function expenseRowForDb({ name, cat, amount, date, tags }, includeTags) {
+  const row = { name, cat, amount, date };
+  if (includeTags) row.tags = tags || [];
+  return row;
+}
+
+function isMissingTagsColumnError(error) {
+  return error?.code === 'PGRST204' && String(error.message || '').includes("'tags'");
+}
+
+async function insertExpense(row) {
+  let result = await supabaseClient.from('expenses').insert([row]).select();
+  if (isMissingTagsColumnError(result.error) && 'tags' in row) {
+    const { tags, ...rowWithoutTags } = row;
+    result = await supabaseClient.from('expenses').insert([rowWithoutTags]).select();
+    if (!result.error && result.data?.[0]) result.data[0].tags = tags || [];
+  }
+  return result;
+}
+
+async function updateExpense(id, row) {
+  let result = await supabaseClient.from('expenses').update(row).eq('id', id);
+  if (isMissingTagsColumnError(result.error) && 'tags' in row) {
+    const { tags, ...rowWithoutTags } = row;
+    result = await supabaseClient.from('expenses').update(rowWithoutTags).eq('id', id);
+  }
+  return result;
+}
+
 let isAuthenticated = false;
 
 /* ═══ THEME ═══════════════════════════════════════ */
@@ -1658,7 +1698,7 @@ async function loadData() {
     if (expensesError) throw expensesError;
     
     S.payments = payments || [];
-    S.expenses = expenses || [];
+    S.expenses = (expenses || []).map(e => ({ ...e, tags: parseExpenseTags(e.tags) }));
     // Only throw if savings table error is not 404 (table not found)
     if (savingsError && savingsError.code !== 'PGRST205') throw savingsError;
     S.savings = (savingsError && savingsError.code === 'PGRST205') ? [] : (savings || []);
@@ -2168,17 +2208,16 @@ async function addExpense() {
   const cat    = el('expCat').value;
   const amount = parseFloat(el('expAmount').value) || 0;
   const date   = el('expDate').value;
-  const tagsStr = el('expTags').value.trim();
-  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+  const tags = parseTagsInput(el('expTags').value.trim());
 
   if (!name)      { showToast('❗ Введите название'); return; }
   if (amount <= 0){ showToast('❗ Укажите сумму');    return; }
 
   try {
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
-    const { data, error } = await supabaseClient.from('expenses').insert([{ name, cat, amount, date, tags }]).select();
+    const { data, error } = await insertExpense(expenseRowForDb({ name, cat, amount, date, tags }, true));
     if (error) throw error;
-    S.expenses.push(data[0]);
+    S.expenses.push({ ...data[0], tags: parseExpenseTags(data[0].tags) });
     el('expName').value   = '';
     el('expAmount').value = '';
     el('expTags').value   = '';
@@ -2720,8 +2759,7 @@ async function saveExpenseEdit() {
   const cat = el('editExpCat').value;
   const amount = parseFloat(el('editExpAmount').value) || 0;
   const date = el('editExpDate').value;
-  const tagsStr = el('editExpTags').value.trim();
-  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
+  const tags = parseTagsInput(el('editExpTags').value.trim());
 
   if (!name) {
     showToast('❗ Введите название');
@@ -2734,10 +2772,7 @@ async function saveExpenseEdit() {
 
   try {
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
-    const { error } = await supabaseClient
-      .from('expenses')
-      .update({ name, cat, amount, date, tags })
-      .eq('id', editingExpenseId);
+    const { error } = await updateExpense(editingExpenseId, expenseRowForDb({ name, cat, amount, date, tags }, true));
     if (error) throw error;
 
     const expense = S.expenses.find(e => e.id === editingExpenseId);
@@ -2746,6 +2781,7 @@ async function saveExpenseEdit() {
       expense.cat = cat;
       expense.amount = amount;
       expense.date = date;
+      expense.tags = tags;
     }
 
     closeModal('editExpenseModal');
