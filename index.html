@@ -1044,6 +1044,14 @@ input:focus, select:focus {
     <div class="card-body">
       <div class="fields">
         <div class="field span2">
+          <label>Период</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;" id="filterWeek" onclick="setPeriodFilter('week')">📆 Неделя</button>
+            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--blue);border-radius:6px;background:var(--surface);color:var(--blue);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;font-weight:600;" id="filterMonth" onclick="setPeriodFilter('month')">📅 Месяц</button>
+            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;" id="filterYear" onclick="setPeriodFilter('year')">📊 Год</button>
+          </div>
+        </div>
+        <div class="field span2">
           <label>Месяц</label>
           <select id="monthSelect"></select>
         </div>
@@ -1647,6 +1655,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 let currentMonthKey = null;
+let currentPeriodFilter = 'month'; // 'week', 'month', 'year'
 
 function getMonthKey(date) {
   if (!date) return null;
@@ -1683,8 +1692,64 @@ function getMonthItems(items, monthKey) {
   return items.filter(item => getMonthKey(item.date) === monthKey);
 }
 
+function getWeekNumber(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const diff = d - yearStart;
+  const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  return Math.floor(diff / oneWeek) + 1;
+}
+
+function getWeekKey(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const week = getWeekNumber(date);
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+function getYearKey(date) {
+  if (!date) return null;
+  const year = date.split('-')[0];
+  return year || null;
+}
+
+function getItemsByPeriod(items, period, startDate = null, endDate = null) {
+  if (period === 'week' && startDate && endDate) {
+    return items.filter(item => item.date >= startDate && item.date <= endDate);
+  } else if (period === 'month' && startDate) {
+    const monthKey = getMonthKey(startDate);
+    return getMonthItems(items, monthKey);
+  } else if (period === 'year' && startDate) {
+    const yearKey = getYearKey(startDate);
+    return items.filter(item => getYearKey(item.date) === yearKey);
+  }
+  return items;
+}
+
+function formatPeriodRange(period, date) {
+  if (period === 'week') {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const weekStart = new Date(d.setDate(diff));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    return `${fmtDate(weekStart.toISOString().split('T')[0])} - ${fmtDate(weekEnd.toISOString().split('T')[0])}`;
+  } else if (period === 'month') {
+    const key = getMonthKey(date);
+    return `${getMonthLabel(key)} ${key.split('-')[0]}`;
+  } else if (period === 'year') {
+    return date.split('-')[0];
+  }
+  return '';
+}
+
 function initMonthFilter() {
   currentMonthKey = localStorage.getItem('finflow-month');
+  currentPeriodFilter = localStorage.getItem('finflow-period') || 'month';
   buildMonthOptions();
   const select = el('monthSelect');
   if (!select) return;
@@ -1693,12 +1758,32 @@ function initMonthFilter() {
     localStorage.setItem('finflow-month', currentMonthKey);
     refresh();
   });
+  // Обновляем активную кнопку периода
+  setPeriodFilter(currentPeriodFilter);
 }
 
 function updateMonthSummary(monthKey) {
-  const incomeItems = getMonthItems(S.payments, monthKey);
-  const expenseItems = getMonthItems(S.expenses, monthKey);
-  const savingsItems = getMonthItems(S.savings, monthKey);
+  let incomeItems, expenseItems, savingsItems, periodLabel;
+  
+  if (currentPeriodFilter === 'week' && monthKey) {
+    const d = new Date(monthKey + '-01');
+    incomeItems = getItemsByPeriod(S.payments, 'week', monthKey, monthKey);
+    expenseItems = getItemsByPeriod(S.expenses, 'week', monthKey, monthKey);
+    savingsItems = getItemsByPeriod(S.savings, 'week', monthKey, monthKey);
+    periodLabel = `На неделю ${formatPeriodRange('week', monthKey)}`;
+  } else if (currentPeriodFilter === 'year' && monthKey) {
+    const year = monthKey.split('-')[0];
+    incomeItems = getItemsByPeriod(S.payments, 'year', monthKey, null);
+    expenseItems = getItemsByPeriod(S.expenses, 'year', monthKey, null);
+    savingsItems = getItemsByPeriod(S.savings, 'year', monthKey, null);
+    periodLabel = `За год ${year}`;
+  } else {
+    incomeItems = getMonthItems(S.payments, monthKey);
+    expenseItems = getMonthItems(S.expenses, monthKey);
+    savingsItems = getMonthItems(S.savings, monthKey);
+    periodLabel = monthKey ? `За ${getMonthLabel(monthKey)}` : 'По всем месяцам';
+  }
+  
   const totalReceived = incomeItems.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const totalExp = expenseItems.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const totalSavings = savingsItems.reduce((sum, s) => sum + Number(s.amount || 0), 0);
@@ -1708,7 +1793,7 @@ function updateMonthSummary(monthKey) {
   el('monthExpensesCount').textContent = `${expenseItems.length} ${expenseItems.length === 1 ? 'запись' : 'записи'}`;
   el('monthSavings').textContent = fmt(totalSavings);
   el('monthSavingsCount').textContent = `${savingsItems.length} ${savingsItems.length === 1 ? 'накопление' : 'накопления'}`;
-  if (el('chartMonthLabel')) el('chartMonthLabel').textContent = monthKey ? `За ${getMonthLabel(monthKey)}` : 'По всем месяцам';
+  if (el('chartMonthLabel')) el('chartMonthLabel').textContent = periodLabel;
 }
 
 function checkDesktop() {
@@ -2085,6 +2170,23 @@ function expRowHTML(e, withDelete) {
 }
 
 /* ═══ SEARCH & FILTER ════════════════════════════ */
+function setPeriodFilter(period) {
+  currentPeriodFilter = period;
+  
+  // Обновляем активную кнопку
+  ['Week', 'Month', 'Year'].forEach(p => {
+    const btn = el(`filter${p}`);
+    if (!btn) return;
+    const isActive = period === p.toLowerCase();
+    btn.style.borderColor = isActive ? `var(--${p === 'Month' ? 'blue' : 'border'})` : 'var(--border)';
+    btn.style.color = isActive ? `var(--${p === 'Month' ? 'blue' : 'ink'})` : 'var(--ink)';
+    btn.style.fontWeight = isActive ? '600' : '400';
+  });
+  
+  localStorage.setItem('finflow-period', period);
+  refresh();
+}
+
 function filterExpenses() {
   const searchInput = el('expSearchInput');
   if (!searchInput) return;
@@ -2237,7 +2339,16 @@ let chart = null;
 function renderChart(totalExp, monthKey) {
   const canvas = el('chartCanvas');
   const empty  = el('chartEmpty');
-  const filteredExpenses = monthKey ? getMonthItems(S.expenses, monthKey) : S.expenses;
+  
+  let filteredExpenses;
+  if (currentPeriodFilter === 'week' && monthKey) {
+    filteredExpenses = getItemsByPeriod(S.expenses, 'week', monthKey, monthKey);
+  } else if (currentPeriodFilter === 'year' && monthKey) {
+    filteredExpenses = getItemsByPeriod(S.expenses, 'year', monthKey, null);
+  } else {
+    filteredExpenses = monthKey ? getMonthItems(S.expenses, monthKey) : S.expenses;
+  }
+  
   if (filteredExpenses.length === 0) {
     canvas.style.display = 'none'; empty.style.display = 'block';
     if (chart) { chart.destroy(); chart = null; }
