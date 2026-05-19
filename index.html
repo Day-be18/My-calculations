@@ -15,6 +15,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js" defer></script>
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -401,6 +402,39 @@ select {
   .export-buttons { flex-direction: column; align-items: stretch; }
   .export-buttons .btn { width: 100%; }
 }
+
+.pdf-report-root {
+  position: fixed;
+  left: -10000px;
+  top: 0;
+  width: 794px;
+  padding: 28px 32px;
+  background: #ffffff;
+  color: #111318;
+  font-family: 'Manrope', -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  z-index: -1;
+}
+.pdf-report-root h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+.pdf-report-root h2 { font-size: 15px; font-weight: 700; margin: 20px 0 10px; border-bottom: 2px solid #e8eaed; padding-bottom: 6px; }
+.pdf-report-root h3 { font-size: 13px; font-weight: 700; margin: 0 0 8px; color: #374151; }
+.pdf-report-meta { color: #6b7280; font-size: 11px; margin-bottom: 16px; }
+.pdf-kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 8px; }
+.pdf-kpi { border: 1px solid #e8eaed; border-radius: 10px; padding: 10px 12px; background: #fafbfc; }
+.pdf-kpi-label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.pdf-kpi-val { font-size: 16px; font-weight: 700; }
+.pdf-kpi-val.g { color: #059669; }
+.pdf-kpi-val.r { color: #dc2626; }
+.pdf-kpi-val.b { color: #2563eb; }
+.pdf-chart-block { page-break-inside: avoid; margin: 14px 0; }
+.pdf-chart-block img { display: block; width: 100%; max-height: 280px; object-fit: contain; }
+.pdf-chart-empty { color: #9ca3af; font-style: italic; margin: 8px 0 16px; }
+.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
+.pdf-table th, .pdf-table td { border: 1px solid #e8eaed; padding: 6px 8px; text-align: left; }
+.pdf-table th { background: #f4f5f7; font-weight: 700; }
+.pdf-table td.num { text-align: right; white-space: nowrap; }
+.pdf-footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #e8eaed; color: #9ca3af; font-size: 10px; }
 .btn-del {
   background: none; border: none; height: 32px; width: 32px; padding: 0;
   border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
@@ -1029,6 +1063,9 @@ input:focus, select:focus {
         <button class="btn btn-secondary" onclick="exportSavingsCSV()">
           💰 Скачать накопления (CSV)
         </button>
+        <button class="btn btn-green" onclick="exportReportPDF()">
+          📄 Скачать отчёт (PDF)
+        </button>
       </div>
     </div>
   </div>
@@ -1363,6 +1400,11 @@ input:focus, select:focus {
 <!-- ══════ TAB: СТАТИСТИКА ══════ -->
 <div id="tab-stats" class="tab-section">
   <div class="section-title">Статистика расходов</div>
+  <div style="margin-bottom:12px;">
+    <button class="btn btn-green" type="button" onclick="exportReportPDF()" style="width:100%;">
+      📄 Скачать отчёт (PDF)
+    </button>
+  </div>
   <div class="card">
     <div class="card-hdr">
       <div class="card-ico ico-r">📊</div>
@@ -1870,11 +1912,10 @@ function initMonthFilter() {
   setPeriodFilter(currentPeriodFilter);
 }
 
-function updateMonthSummary(monthKey) {
+function getPeriodSummary(monthKey) {
   let incomeItems, expenseItems, savingsItems, periodLabel;
-  
+
   if (currentPeriodFilter === 'week' && monthKey) {
-    const d = new Date(monthKey + '-01');
     incomeItems = getItemsByPeriod(S.payments, 'week', monthKey, monthKey);
     expenseItems = getItemsByPeriod(S.expenses, 'week', monthKey, monthKey);
     savingsItems = getItemsByPeriod(S.savings, 'week', monthKey, monthKey);
@@ -1891,10 +1932,22 @@ function updateMonthSummary(monthKey) {
     savingsItems = getMonthItems(S.savings, monthKey);
     periodLabel = monthKey ? `За ${getMonthLabel(monthKey)}` : 'По всем месяцам';
   }
-  
+
   const totalReceived = incomeItems.reduce((sum, p) => sum + Number(p.amount || 0), 0);
   const totalExp = expenseItems.reduce((sum, e) => sum + Number(e.amount || 0), 0);
   const totalSavings = savingsItems.reduce((sum, s) => sum + Number(s.amount || 0), 0);
+
+  return {
+    incomeItems, expenseItems, savingsItems, periodLabel,
+    totalReceived, totalExp, totalSavings,
+    balance: totalReceived - totalExp
+  };
+}
+
+function updateMonthSummary(monthKey) {
+  const summary = getPeriodSummary(monthKey);
+  const { incomeItems, expenseItems, savingsItems, periodLabel, totalReceived, totalExp, totalSavings } = summary;
+
   el('monthIncome').textContent = fmt(totalReceived);
   el('monthIncomeCount').textContent = `${incomeItems.length} ${incomeItems.length === 1 ? 'выплата' : incomeItems.length < 5 ? 'выплаты' : 'выплат'}`;
   el('monthExpenses').textContent = fmt(totalExp);
@@ -2981,6 +3034,150 @@ function exportSavingsCSV() {
   }));
   const suffix = currentMonthKey ? currentMonthKey.replace('-', '_') : 'все';
   downloadCSV(data, `накопления_${suffix}.csv`);
+}
+
+function chartToPdfImage(chartInst) {
+  if (!chartInst) return null;
+  try {
+    return chartInst.toBase64Image('image/png', 2);
+  } catch {
+    return null;
+  }
+}
+
+function buildPdfReportElement() {
+  const monthKey = currentMonthKey || getMonthKey(todayISO());
+  const period = getPeriodSummary(monthKey);
+  const categoryStats = computeCategoryStats();
+  const totalReceivedAll = S.payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalExpAll = S.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalSavAll = S.savings.reduce((s, sv) => s + Number(sv.amount || 0), 0);
+  const balanceAll = totalReceivedAll - totalExpAll;
+  const generatedAt = new Date().toLocaleString('ru-RU', {
+    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
+  const periodFilterLabel = currentPeriodFilter === 'week' ? 'Неделя'
+    : currentPeriodFilter === 'year' ? 'Год' : 'Месяц';
+
+  const chartBlocks = [
+    { img: chartToPdfImage(chart), title: 'Расходы по категориям (выбранный период)', empty: 'Нет расходов за период' },
+    { img: chartToPdfImage(statsChart), title: 'Средний расход по категориям', empty: 'Нет данных для диаграммы' },
+    { img: chartToPdfImage(trendChart), title: 'Тренд расходов за 6 месяцев', empty: 'Нет данных для тренда' }
+  ].map(block => {
+    if (block.img) {
+      return `<div class="pdf-chart-block"><h3>${esc(block.title)}</h3><img src="${block.img}" alt="${esc(block.title)}" /></div>`;
+    }
+    return `<p class="pdf-chart-empty">${esc(block.title)}: ${block.empty}</p>`;
+  }).join('');
+
+  const categoryRows = categoryStats.length
+    ? categoryStats.map(item => `
+        <tr>
+          <td>${esc(item.cat)}</td>
+          <td class="num">${fmt(item.avg)}</td>
+          <td class="num">${fmt(item.total)}</td>
+          <td class="num">${item.count}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4">Нет расходов</td></tr>';
+
+  const topExpenses = [...period.expenseItems]
+    .sort((a, b) => Number(b.amount) - Number(a.amount))
+    .slice(0, 15);
+  const expenseRows = topExpenses.length
+    ? topExpenses.map(e => `
+        <tr>
+          <td>${fmtDate(e.date)}</td>
+          <td>${esc(e.name)}</td>
+          <td>${esc(e.cat)}</td>
+          <td class="num">${fmt(e.amount)}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4">Нет расходов за период</td></tr>';
+
+  const root = document.createElement('div');
+  root.className = 'pdf-report-root';
+  root.innerHTML = `
+    <h1>FinFlow — финансовый отчёт</h1>
+    <div class="pdf-report-meta">
+      Сформирован: ${esc(generatedAt)}<br>
+      Период отчёта: ${esc(period.periodLabel)} (${esc(periodFilterLabel)})
+    </div>
+
+    <h2>Сводка за период</h2>
+    <div class="pdf-kpi-grid">
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Доходы</div><div class="pdf-kpi-val g">${esc(fmt(period.totalReceived))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Расходы</div><div class="pdf-kpi-val r">${esc(fmt(period.totalExp))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Накопления</div><div class="pdf-kpi-val b">${esc(fmt(period.totalSavings))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Баланс периода</div><div class="pdf-kpi-val ${period.balance >= 0 ? 'g' : 'r'}">${esc(fmt(Math.abs(period.balance)))}${period.balance < 0 ? ' (дефицит)' : ''}</div></div>
+    </div>
+
+    <h2>Общая картина (все данные)</h2>
+    <div class="pdf-kpi-grid">
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Всего доходов</div><div class="pdf-kpi-val g">${esc(fmt(totalReceivedAll))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Всего расходов</div><div class="pdf-kpi-val r">${esc(fmt(totalExpAll))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Накоплено</div><div class="pdf-kpi-val b">${esc(fmt(totalSavAll))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Общий баланс</div><div class="pdf-kpi-val ${balanceAll >= 0 ? 'g' : 'r'}">${esc(fmt(Math.abs(balanceAll)))}</div></div>
+    </div>
+
+    <h2>Диаграммы</h2>
+    ${chartBlocks}
+
+    <h2>Категории расходов</h2>
+    <table class="pdf-table">
+      <thead><tr><th>Категория</th><th>Средний</th><th>Всего</th><th>Записей</th></tr></thead>
+      <tbody>${categoryRows}</tbody>
+    </table>
+
+    <h2>Крупнейшие расходы за период</h2>
+    <table class="pdf-table">
+      <thead><tr><th>Дата</th><th>Название</th><th>Категория</th><th>Сумма</th></tr></thead>
+      <tbody>${expenseRows}</tbody>
+    </table>
+
+    <div class="pdf-footer">FinFlow · Отчёт сгенерирован автоматически</div>
+  `;
+  return root;
+}
+
+async function exportReportPDF() {
+  if (typeof html2pdf === 'undefined') {
+    showToast('❌ Библиотека PDF не загружена');
+    return;
+  }
+
+  showToast('⏳ Формирование PDF...');
+  refresh();
+  renderStats();
+
+  if (document.fonts && document.fonts.ready) {
+    await document.fonts.ready;
+  }
+  await new Promise(resolve => setTimeout(resolve, 450));
+
+  const reportEl = buildPdfReportElement();
+  document.body.appendChild(reportEl);
+
+  const suffix = (currentMonthKey || getMonthKey(todayISO())).replace('-', '_');
+  const filename = `FinFlow_отчёт_${suffix}.pdf`;
+
+  const opt = {
+    margin: [12, 12, 12, 12],
+    filename,
+    image: { type: 'jpeg', quality: 0.92 },
+    html2canvas: { scale: 2, useCORS: true, logging: false, backgroundColor: '#ffffff' },
+    jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+    pagebreak: { mode: ['css', 'legacy'], avoid: ['.pdf-chart-block', '.pdf-kpi'] }
+  };
+
+  try {
+    await html2pdf().set(opt).from(reportEl).save();
+    showToast('✅ PDF скачан');
+  } catch (e) {
+    console.error('PDF export error:', e);
+    showToast('❌ Ошибка создания PDF');
+  } finally {
+    reportEl.remove();
+  }
 }
 
 function downloadCSV(data, filename) {
