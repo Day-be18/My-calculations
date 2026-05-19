@@ -1317,6 +1317,10 @@ input:focus, select:focus {
             <label>Дата</label>
             <input type="date" id="expDate" />
           </div>
+          <div class="field span2">
+            <label>Теги (через запятую)</label>
+            <input type="text" id="expTags" placeholder="работа, срочно, онлайн…" />
+          </div>
         </div>
         <button class="btn btn-green btn-full" onclick="addExpense()">+ Добавить</button>
       </div>
@@ -1334,6 +1338,9 @@ input:focus, select:focus {
     </div>
     <div class="collapse-body closed" id="fullExpBody">
       <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
+          <input type="text" id="expSearchInput" placeholder="🔍 Поиск по названию..." style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--ff);color:var(--ink);background:var(--surface);" onkeyup="filterExpenses()" />
+        </div>
         <div id="fullList" class="exp-list"></div>
         <div id="fullEmpty" class="empty-state" style="display:none">
           <div class="empty-icon">🧾</div>
@@ -1372,7 +1379,7 @@ let S = {
   plannedIncome: 0,   // from salary calculator
   avgDay: 0,
   _rate:0, _count:0, _days:22, _bonus:0,
-  expenses: [],       // { id, name, cat, amount, date }
+  expenses: [],       // { id, name, cat, amount, date, tags: [] }
   savings: []         // { id, label, amount, date }
 };
 
@@ -2007,17 +2014,20 @@ async function addExpense() {
   const cat    = el('expCat').value;
   const amount = parseFloat(el('expAmount').value) || 0;
   const date   = el('expDate').value;
+  const tagsStr = el('expTags').value.trim();
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
 
   if (!name)      { showToast('❗ Введите название'); return; }
   if (amount <= 0){ showToast('❗ Укажите сумму');    return; }
 
   try {
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
-    const { data, error } = await supabaseClient.from('expenses').insert([{ name, cat, amount, date }]).select();
+    const { data, error } = await supabaseClient.from('expenses').insert([{ name, cat, amount, date, tags }]).select();
     if (error) throw error;
     S.expenses.push(data[0]);
     el('expName').value   = '';
     el('expAmount').value = '';
+    el('expTags').value   = '';
     refresh();
     setSyncStatus('ok', 'Данные синхронизированы');
     saveLocalCache();
@@ -2055,6 +2065,9 @@ function expRowHTML(e, withDelete) {
       </div>`
     : '';
   const cssClass = esc(e.cat).replace(/\s+/g, '_');
+  const tagsHtml = e.tags && e.tags.length > 0
+    ? `<div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap;">${e.tags.map(tag => `<span style="font-size:.65rem;background:var(--border);color:var(--ink-3);padding:2px 6px;border-radius:4px;">#${esc(tag)}</span>`).join('')}</div>`
+    : '';
   return `
     <div class="exp-row">
       <div class="exp-dot" style="background:${col}"></div>
@@ -2064,10 +2077,37 @@ function expRowHTML(e, withDelete) {
           <span class="badge c-${cssClass}">${esc(e.cat)}</span>
           <span class="exp-date-text">${fmtDate(e.date)}</span>
         </div>
+        ${tagsHtml}
       </div>
       <div class="exp-amount-text">−${fmt(e.amount)}</div>
       ${del}
     </div>`;
+}
+
+/* ═══ SEARCH & FILTER ════════════════════════════ */
+function filterExpenses() {
+  const searchInput = el('expSearchInput');
+  if (!searchInput) return;
+  
+  const searchTerm = searchInput.value.toLowerCase();
+  const fList = el('fullList');
+  
+  if (!searchTerm) {
+    // Показываем все расходы
+    const sortedExp = [...S.expenses].sort((a,b) => b.id - a.id);
+    fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
+  } else {
+    // Фильтруем по названию и тегам
+    const filtered = S.expenses.filter(e => {
+      const nameMatch = e.name.toLowerCase().includes(searchTerm);
+      const tagsMatch = e.tags && e.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+      return nameMatch || tagsMatch;
+    });
+    const sorted = [...filtered].sort((a,b) => b.id - a.id);
+    fList.innerHTML = sorted.length > 0 
+      ? sorted.map(e => expRowHTML(e, true)).join('')
+      : '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Расходы не найдены</div></div>';
+  }
 }
 
 /* ═══ REFRESH (render all) ════════════════════════ */
@@ -2171,7 +2211,13 @@ function refresh() {
     fList.innerHTML = ''; fEmpty.style.display = 'block';
   } else {
     fEmpty.style.display = 'none';
-    fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
+    // Применяем фильтрацию поиска
+    const searchInput = el('expSearchInput');
+    if (searchInput && searchInput.value.trim()) {
+      filterExpenses();
+    } else {
+      fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
+    }
   }
 
   // Restart animations for newly added elements
@@ -2349,6 +2395,7 @@ function editExpense(id) {
   el('editExpCat').value = expense.cat;
   el('editExpAmount').value = expense.amount;
   el('editExpDate').value = expense.date;
+  el('editExpTags').value = expense.tags ? expense.tags.join(', ') : '';
   el('editExpenseModal').classList.add('show');
 }
 
@@ -2357,6 +2404,8 @@ async function saveExpenseEdit() {
   const cat = el('editExpCat').value;
   const amount = parseFloat(el('editExpAmount').value) || 0;
   const date = el('editExpDate').value;
+  const tagsStr = el('editExpTags').value.trim();
+  const tags = tagsStr ? tagsStr.split(',').map(t => t.trim()).filter(t => t) : [];
 
   if (!name) {
     showToast('❗ Введите название');
@@ -2371,7 +2420,7 @@ async function saveExpenseEdit() {
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient
       .from('expenses')
-      .update({ name, cat, amount, date })
+      .update({ name, cat, amount, date, tags })
       .eq('id', editingExpenseId);
     if (error) throw error;
 
@@ -2485,6 +2534,10 @@ if ('serviceWorker' in navigator) {
         <div class="field span2">
           <label>Дата</label>
           <input type="date" id="editExpDate" />
+        </div>
+        <div class="field span2">
+          <label>Теги (через запятую)</label>
+          <input type="text" id="editExpTags" placeholder="работа, срочно, онлайн…" />
         </div>
       </div>
     </div>
