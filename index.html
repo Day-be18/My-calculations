@@ -1,0 +1,3976 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>FinFlow — Финансы</title>
+  <meta name="description" content="Личный финансовый трекер: зарплата, расходы, баланс" />
+  <meta name="theme-color" content="#111318" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="FinFlow" />
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+:root {
+  --ff: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --bg:        #f4f5f7;
+  --surface:   #ffffff;
+  --border:    #d1d5db;
+  --ink:       #111827;
+  --ink-2:     #4b5563;
+  --ink-3:     #6b7280;
+  --green:     #047857;
+  --green-lt:  #ecfdf5;
+  --green-2:   #10b981;
+  --red:       #dc2626;
+  --red-lt:    #fef2f2;
+  --amber:     #d97706;
+  --amber-lt:  #fffbeb;
+  --blue:      #2563eb;
+  --blue-lt:   #eff6ff;
+  --purple:    #7c3aed;
+  --purple-lt: #f5f3ff;
+  --slate:     #475569;
+  --slate-lt:  #f1f5f9;
+  --r:    16px;
+  --r-s:  10px;
+  --sh:    0 1px 3px rgba(0,0,0,.08), 0 4px 16px rgba(0,0,0,.08);
+  --sh-lg: 0 4px 24px rgba(0,0,0,.12);
+  --nav-h: 68px;
+  --chart-text: #111827;
+  --chart-grid: rgba(17,24,39,.08);
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-text: #111827;
+  --chart-border: #ffffff;
+  --tag-bg: #e5e7eb;
+  --tag-text: #1f2937;
+  --header-bg: #111827;
+  --header-text: #ffffff;
+  --header-text-2: rgba(255,255,255,.82);
+  --header-text-3: rgba(255,255,255,.55);
+  --header-btn-bg: rgba(255,255,255,.10);
+  --header-btn-border: rgba(255,255,255,.15);
+  --header-btn-text: rgba(255,255,255,.75);
+  --logo-em: #10b981;
+  --sync-ok: #86efac;
+  --sync-fail: #fca5a5;
+  --sync-pending: rgba(255,255,255,.85);
+  --btn-secondary-bg: #4b5563;
+  --btn-secondary-hover: #111827;
+  --input-bg: #f9fafb;
+  --row-bg: #f9fafb;
+  --row-hover-bg: #f3f4f6;
+  --pay-date-color: #047857;
+}
+
+/* DARK THEME */
+[data-theme="dark"] {
+  --bg:        #0f172a;
+  --surface:   #1e293b;
+  --border:    #334155;
+  --ink:       #f1f5f9;
+  --ink-2:     #cbd5e1;
+  --ink-3:     #94a3b8;
+  --green:     #34d399;
+  --green-lt:  #064e3b;
+  --green-2:   #34d399;
+  --red:       #f87171;
+  --red-lt:    #7f1d1d;
+  --amber:     #fbbf24;
+  --amber-lt:  #78350f;
+  --blue:      #60a5fa;
+  --blue-lt:   #1e3a8a;
+  --purple:    #c084fc;
+  --purple-lt: #4c1d95;
+  --slate:     #94a3b8;
+  --slate-lt:  #1e293b;
+  --chart-text: #e2e8f0;
+  --chart-grid: rgba(226,232,240,.12);
+  --chart-tooltip-bg: rgba(15,23,42,.94);
+  --chart-tooltip-text: #e2e8f0;
+  --chart-border: #1e293b;
+  --tag-bg: #334155;
+  --tag-text: #e2e8f0;
+  --header-bg: #1e293b;
+  --header-text: #f1f5f9;
+  --header-text-2: rgba(241,245,249,.82);
+  --header-text-3: rgba(241,245,249,.55);
+  --header-btn-bg: rgba(241,245,249,.08);
+  --header-btn-border: rgba(241,245,249,.12);
+  --header-btn-text: rgba(241,245,249,.72);
+  --logo-em: #34d399;
+  --sync-ok: #86efac;
+  --sync-fail: #fca5a5;
+  --sync-pending: rgba(241,245,249,.85);
+  --btn-secondary-bg: #475569;
+  --btn-secondary-hover: #f1f5f9;
+  --input-bg: #334155;
+  --row-bg: #334155;
+  --row-hover-bg: #475569;
+  --pay-date-color: #86efac;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+body {
+  font-family: var(--ff);
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding-bottom: 20px;
+}
+@media (max-width: 767px) { body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px); } }
+@media (min-width: 768px) { body { padding-bottom: 48px; } }
+
+/* HEADER */
+header {
+  height: 60px; background: var(--header-bg);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 20px; position: sticky; top: 0; z-index: 200;
+  padding-top: env(safe-area-inset-top);
+}
+.logo { font-size: 1.25rem; font-weight: 800; color: var(--header-text); letter-spacing: -.5px; }
+.logo em { color: var(--logo-em); font-style: normal; }
+.hdr-date { font-size: .72rem; color: var(--header-text-3); display: none; }
+@media (min-width: 480px) { .hdr-date { display: block; } }
+.hdr-reset {
+  background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
+  color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
+  font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
+  cursor: pointer; transition: all .3s ease; white-space: nowrap;
+  position: relative; overflow: hidden;
+}
+.hdr-reset::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.2), transparent);
+  transition: left .5s ease;
+}
+.hdr-reset:hover::before { left: 100%; }
+.hdr-reset:hover { background: rgba(255,255,255,.16); color: var(--header-text); transform: translateY(-1px); }
+.hdr-logout {
+  background: rgba(239,68,68,.1); color: #dc2626; border: 1px solid rgba(239,68,68,.2);
+  padding: 8px 12px; border-radius: 6px; font-size: .8rem; font-weight: 600;
+  cursor: pointer; transition: all .2s; white-space: nowrap;
+}
+.hdr-logout:hover { background: rgba(239,68,68,.2); transform: translateY(-1px); }
+.hdr-meta { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+.hdr-sync {
+  font-size:.72rem; color: var(--header-text-2);
+  padding: 6px 10px; border-radius: 999px;
+  background: var(--header-btn-bg); border:1px solid var(--header-btn-border);
+  white-space: nowrap;
+}
+.hdr-sync.ok { color: var(--sync-ok); background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.30); }
+.hdr-sync.fail { color: var(--sync-fail); background: rgba(220,38,38,.12); border-color: rgba(220,38,38,.30); }
+.hdr-sync.pending { color: var(--sync-pending); }
+.hdr-sync.local { color: rgba(255,255,255,.92); background: rgba(59,130,246,.18); border-color: rgba(59,130,246,.35); }
+.hdr-theme {
+  background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
+  color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
+  font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
+  cursor: pointer; transition: all .3s ease; white-space: nowrap;
+  position: relative; display: flex; align-items: center; gap: 6px;
+}
+.hdr-theme:hover { background: rgba(255,255,255,.16); color: var(--header-text); transform: translateY(-1px); }
+.theme-menu {
+  position: absolute; top: 100%; right: 0; margin-top: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--r-s); box-shadow: var(--sh-lg);
+  display: none; flex-direction: column; z-index: 1000;
+  min-width: 140px; overflow: hidden;
+}
+.theme-menu.show { display: flex; }
+.theme-option {
+  padding: 10px 16px; font-size: .85rem; border: none;
+  background: none; cursor: pointer; color: var(--ink);
+  transition: background .15s; text-align: left; font-family: var(--ff);
+}
+.theme-option:hover { background: var(--border); }
+.theme-option.active { background: var(--green-lt); color: var(--green); font-weight: 600; }
+
+@media (max-width: 860px) {
+  header {
+    flex-wrap: wrap; align-items: flex-start; gap: 10px; height: auto;
+    padding: 10px 16px 12px; justify-content: flex-start;
+  }
+  .hdr-meta { width: 100%; align-items: flex-start; gap: 8px; }
+  .hdr-reset, .hdr-theme { flex: 1; min-width: 140px; }
+  .hdr-theme { justify-content: center; }
+}
+
+@media (min-width: 861px) {
+  header { flex-wrap: nowrap; align-items: center; justify-content: space-between; }
+  .hdr-meta { width: auto; align-items: center; }
+  .hdr-reset, .hdr-theme { flex: none; min-width: auto; }
+  .hdr-sync { width: auto; }
+}
+
+/* BOTTOM NAV */
+.bottom-nav {
+  display: flex; position: fixed; bottom: 0; left: 0; right: 0;
+  height: var(--nav-h); padding-bottom: env(safe-area-inset-bottom);
+  background: var(--surface); border-top: 1px solid var(--border);
+  z-index: 200; box-shadow: 0 -4px 20px rgba(0,0,0,.06);
+}
+@media (min-width: 768px) { .bottom-nav { display: none; } }
+.nav-btn {
+  flex: 1; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 3px; border: none; background: none;
+  cursor: pointer; color: var(--ink-3); font-family: var(--ff);
+  font-size: .62rem; font-weight: 600; letter-spacing: .3px;
+  text-transform: uppercase; transition: all .3s ease; padding: 8px 4px;
+  -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
+}
+.nav-btn::before {
+  content: ''; position: absolute; bottom: 0; left: 50%; width: 0; height: 2px;
+  background: var(--green); transition: all .3s ease; transform: translateX(-50%);
+}
+.nav-btn:hover::before, .nav-btn.active::before { width: 80%; }
+.nav-btn:hover { color: var(--green); transform: translateY(-2px); }
+.nav-btn.active { color: var(--green); }
+.nav-icon { font-size: 1.25rem; line-height: 1; }
+
+/* LAYOUT */
+main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%, 1060px); }
+@media (min-width: 768px) { main { padding: 30px 24px 0; } }
+@media (max-width: 767px) { main { min-height: auto; } }
+@media (max-width: 420px) { main { padding: 12px 10px 0; } }
+.tab-section { display: none; }
+.tab-section.active { display: block; }
+@media (min-width: 768px) { .tab-section { display: block !important; } }
+
+/* KPI GRID */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px; margin-bottom: 22px;
+}
+@media (max-width: 860px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
+@media (max-width: 640px) { .kpi-grid { grid-template-columns: 1fr; } }
+.kpi-card.k-saved::after { background: var(--purple); }
+
+.kpi-card {
+  background: var(--surface); border-radius: var(--r);
+  padding: 16px 18px; box-shadow: var(--sh);
+  position: relative; overflow: hidden;
+}
+.kpi-card::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0;
+  height: 3px;
+}
+.kpi-card.k-income::after  { background: var(--green-2); }
+.kpi-card.k-expense::after { background: var(--red); }
+.kpi-card.k-balance::after { background: var(--blue); }
+
+.kpi-label {
+  font-size: .62rem; font-weight: 700; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--ink-2); margin-bottom: 5px;
+}
+.kpi-val {
+  font-size: 1.35rem; font-weight: 800; letter-spacing: -.8px; line-height: 1;
+}
+@media (min-width: 500px) { .kpi-val { font-size: 1.6rem; } }
+@media (max-width: 420px) { .kpi-val { font-size: 1.25rem; } .kpi-sub { font-size: .62rem; } }
+.kpi-val.g { color: var(--green); }
+.kpi-val.r { color: var(--red); }
+.kpi-val.b { color: var(--blue); }
+.kpi-sub { font-size: .68rem; color: var(--ink-3); margin-top: 3px; }
+
+.plan-progress { margin-top: 8px; }
+.plan-bar-bg { background: var(--border); border-radius: 4px; height: 4px; overflow: hidden; }
+.plan-bar { height: 100%; border-radius: 4px; transition: width .6s ease; background: var(--green-2); }
+.plan-label { font-size: .62rem; color: var(--ink-3); margin-top: 3px; }
+
+.progress-wrap { background: var(--border); border-radius: 4px; height: 4px; margin-top: 8px; overflow: hidden; }
+.progress-bar  { height: 100%; border-radius: 4px; transition: width .6s ease, background .4s; }
+
+/* SECTION TITLE */
+.section-title {
+  font-size: .66rem; font-weight: 700; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--ink-2); margin-bottom: 10px; padding-left: 2px;
+}
+
+/* CARD */
+.card {
+  background: var(--surface); border-radius: var(--r);
+  box-shadow: var(--sh); margin-bottom: 14px; overflow: hidden;
+  animation: slideInLeft .35s ease-out both;
+  transition: all .3s ease;
+  position: relative;
+}
+.card:nth-child(odd) { animation-name: slideInLeft; }
+.card:nth-child(even) { animation-name: slideInRight; animation-delay: .1s; }
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-lg);
+}
+.card-hdr {
+  display: flex; align-items: center; gap: 10px;
+  padding: 15px 18px 13px; border-bottom: 1px solid var(--border);
+}
+@media (max-width: 860px) {
+  .card-hdr { flex-wrap: wrap; align-items: flex-start; gap: 10px; }
+  .collapse-trigger { margin-left: auto; }
+}
+@media (max-width: 560px) {
+  .card-hdr { padding: 14px 14px 12px; }
+  .card-body { padding: 14px 14px; }
+  .card-title { font-size: .82rem; }
+  .card-sub { font-size: .64rem; }
+}
+.card-ico {
+  width: 32px; height: 32px; border-radius: var(--r-s);
+  display: flex; align-items: center; justify-content: center;
+  font-size: .88rem; flex-shrink: 0;
+}
+.ico-g  { background: var(--green-lt); }
+.ico-r  { background: var(--red-lt);   }
+.ico-b  { background: var(--blue-lt);  }
+.ico-a  { background: var(--amber-lt); }
+.card-title { font-size: .88rem; font-weight: 700; letter-spacing: -.2px; }
+.card-sub   { font-size: .7rem; color: var(--ink-3); margin-top: 1px; }
+.card-body  { padding: 16px 18px; }
+@media (min-width: 600px) { .card-body { padding: 18px 22px; } }
+
+/* FIELDS */
+.fields {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px; margin-bottom: 12px;
+}
+@media (max-width: 860px) { .fields { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); } }
+@media (max-width: 560px) { .fields { grid-template-columns: 1fr; } }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field.span2 { grid-column: 1/-1; }
+
+label {
+  font-size: .62rem; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--ink-2);
+}
+input, select {
+  height: 44px; padding: 0 12px;
+  border: 1.5px solid var(--border); border-radius: var(--r-s);
+  font-family: var(--ff); font-size: .88rem; color: var(--ink);
+  background: var(--input-bg); outline: none; width: 100%;
+  -webkit-appearance: none; appearance: none;
+  transition: all .3s ease;
+  position: relative;
+}
+input:focus, select:focus {
+  border-color: var(--green-2); background: var(--surface);
+  box-shadow: 0 0 0 3px rgba(16,185,129,.12);
+  transform: scale(1.01);
+}
+select {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' fill='none'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px;
+}
+
+/* BUTTONS */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; height: 44px; padding: 0 20px; border: none;
+  border-radius: var(--r-s); font-family: var(--ff); font-size: .87rem;
+  font-weight: 600; cursor: pointer; transition: all .3s ease;
+  -webkit-tap-highlight-color: transparent; white-space: nowrap;
+  position: relative; overflow: hidden;
+}
+.btn::before {
+  content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.3), transparent);
+  transition: left .4s ease;
+}
+.btn:hover::before { left: 100%; }
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0,0,0,.15);
+}
+.btn:active {
+  transform: translateY(0) scale(.98);
+  transition: all .1s ease;
+}
+.btn-full { width: 100%; }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover  { background: #047857; }
+.btn-green:active { transform: scale(.97); }
+.btn-secondary {
+  background: var(--btn-secondary-bg); color: #fff; border: none; padding: 10px 20px;
+  border-radius: var(--r-s); font-family: var(--ff); font-size: .9rem;
+  font-weight: 500; cursor: pointer; transition: background .2s;
+}
+.btn-secondary:hover { background: var(--btn-secondary-hover); }
+.export-buttons {
+  display: flex; gap: 12px; flex-wrap: wrap; justify-content: center;
+}
+@media (max-width: 480px) {
+  .export-buttons { flex-direction: column; align-items: stretch; }
+  .export-buttons .btn { width: 100%; }
+}
+
+.pdf-report-root {
+  width: 794px;
+  padding: 28px 32px;
+  background: #ffffff;
+  color: #111318;
+  font-family: 'Manrope', -apple-system, sans-serif;
+  font-size: 12px;
+  line-height: 1.45;
+  box-sizing: border-box;
+}
+.pdf-report-root h1 { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+.pdf-report-root h2 { font-size: 15px; font-weight: 700; margin: 20px 0 10px; border-bottom: 2px solid #e8eaed; padding-bottom: 6px; }
+.pdf-report-root h3 { font-size: 13px; font-weight: 700; margin: 0 0 8px; color: #374151; }
+.pdf-report-meta { color: #6b7280; font-size: 11px; margin-bottom: 16px; }
+.pdf-kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 8px; }
+.pdf-kpi { border: 1px solid #e8eaed; border-radius: 10px; padding: 10px 12px; background: #fafbfc; }
+.pdf-kpi-label { font-size: 10px; color: #6b7280; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+.pdf-kpi-val { font-size: 16px; font-weight: 700; }
+.pdf-kpi-val.g { color: #059669; }
+.pdf-kpi-val.r { color: #dc2626; }
+.pdf-kpi-val.b { color: #2563eb; }
+.pdf-chart-block { page-break-inside: avoid; margin: 14px 0; }
+.pdf-chart-block img { display: block; width: 100%; max-height: 280px; object-fit: contain; }
+.pdf-chart-empty { color: #9ca3af; font-style: italic; margin: 8px 0 16px; }
+.pdf-table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 11px; }
+.pdf-table th, .pdf-table td { border: 1px solid #e8eaed; padding: 6px 8px; text-align: left; }
+.pdf-table th { background: #f4f5f7; font-weight: 700; }
+.pdf-table td.num { text-align: right; white-space: nowrap; }
+.pdf-footer { margin-top: 20px; padding-top: 10px; border-top: 1px solid #e8eaed; color: #9ca3af; font-size: 10px; }
+.btn-del {
+  background: none; border: none; height: 32px; width: 32px; padding: 0;
+  border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .3s ease; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
+}
+.btn-del::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(220, 38, 38, 0.18); border-radius: 8px; opacity: 0;
+  transition: opacity .3s ease, background .3s ease;
+}
+.btn-del:hover::before { opacity: 1; background: rgba(220, 38, 38, 0.28); }
+.btn-del:hover { background: rgba(220, 38, 38, 0.12); color: var(--red); transform: scale(1.1) rotate(5deg); }
+.btn-edit {
+  background: none; border: none; height: 32px; width: 32px; padding: 0;
+  border-radius: 8px; color: var(--ink-3); font-size: .85rem; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .3s ease; flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent; position: relative; overflow: hidden;
+}
+.btn-edit::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(59, 130, 246, 0.18); border-radius: 8px; opacity: 0;
+  transition: opacity .3s ease, background .3s ease;
+}
+.btn-edit:hover::before { opacity: 1; background: rgba(59, 130, 246, 0.26); }
+.btn-edit:hover { background: rgba(59, 130, 246, 0.12); color: var(--blue); transform: scale(1.1) rotate(-5deg); }
+.pay-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.exp-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+/* SALARY RESULT BOX */
+.result-box {
+  background: var(--green-lt); border-radius: var(--r-s);
+  padding: 12px 14px; margin-top: 12px; display: none;
+}
+.res-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 5px 0; font-size: .83rem; color: var(--ink-2);
+  border-bottom: 1px dashed rgba(16,185,129,.25);
+}
+.res-row:last-child { border-bottom: none; }
+.res-row strong { font-weight: 700; font-size: .86rem; color: var(--green); }
+
+/* COLLAPSE */
+.collapse-toggle {
+  display: flex; align-items: center; justify-content: space-between;
+  width: 100%; background: none; border: none; padding: 0;
+  cursor: pointer; font-family: var(--ff);
+  -webkit-tap-highlight-color: transparent;
+}
+.collapse-trigger {
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: none; padding: 8px; cursor: pointer;
+  color: var(--ink-3); border-radius: 999px;
+  transition: all .3s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.collapse-trigger:hover { background: rgba(17,19,24,.08); transform: scale(1.05); }
+.collapse-arrow { font-size: .72rem; color: var(--ink-3); transition: transform .4s ease; }
+.collapse-arrow.open { transform: rotate(180deg); }
+.collapse-body { overflow: hidden; transition: all .4s ease; }
+.collapse-body.closed { max-height: 0; opacity: 0; pointer-events: none; transform: translateY(-10px); }
+.collapse-body.open   { max-height: 900px; opacity: 1; transform: translateY(0); }
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* PAYMENT ROWS */
+.pay-list { 
+  display: flex; flex-direction: column; gap: 8px;
+  max-height: 400px; overflow-y: auto;
+  padding-right: 8px;
+}
+
+.pay-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 11px 13px; border-radius: var(--r-s);
+  background: var(--green-lt); border: 1px solid #d1fae5;
+  animation: fadeSlide .25s ease-out both;
+  transition: all .3s ease;
+  cursor: pointer;
+}
+.pay-row:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(16,185,129,.2);
+  background: linear-gradient(135deg, var(--green-lt), rgba(16,185,129,.1));
+}
+.pay-num {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--green); color: #fff;
+  font-size: .68rem; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.pay-info { flex: 1; min-width: 0; }
+.pay-label-text { font-size: .86rem; font-weight: 600; }
+.pay-date-text  { font-size: .7rem; color: var(--pay-date-color); margin-top: 1px; }
+.pay-amount-text {
+  font-size: .96rem; font-weight: 800; color: var(--green);
+  letter-spacing: -.4px; flex-shrink: 0;
+}
+
+/* total row */
+.pay-total-row {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--border);
+}
+.pay-total-label { font-size: .72rem; font-weight: 700; color: var(--ink-2); text-transform: uppercase; letter-spacing: .8px; }
+.pay-total-amt   { font-size: 1.15rem; font-weight: 800; color: var(--green); letter-spacing: -.5px; }
+
+/* EXPENSE ROWS */
+.exp-list { 
+  display: flex; flex-direction: column; gap: 7px;
+  max-height: 400px; overflow-y: auto;
+  padding-right: 8px;
+}
+.exp-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 13px; border-radius: var(--r-s);
+  border: 1px solid var(--border); background: var(--row-bg);
+  transition: all .3s ease; animation: fadeSlide .25s ease-out both;
+  cursor: pointer;
+}
+.exp-row:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.1);
+  background: linear-gradient(135deg, var(--row-bg), rgba(0,0,0,.02));
+}
+.exp-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.exp-info { flex: 1; min-width: 0; }
+.exp-name { font-size: .86rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.exp-meta { display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.badge { font-size: .6rem; font-weight: 700; letter-spacing: .4px; text-transform: uppercase; padding: 2px 6px; border-radius: 20px; }
+.exp-date-text { font-size: .68rem; color: var(--ink-3); }
+.tag-list { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
+.tag-chip {
+  font-size: .65rem;
+  background: var(--tag-bg);
+  color: var(--tag-text);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.exp-amount-text { font-size: .92rem; font-weight: 700; letter-spacing: -.3px; color: var(--red); flex-shrink: 0; }
+
+.c-Еда        { background: var(--amber-lt); color: var(--amber); }
+.c-Обязательные_расходы { background: #fef2f2; color: #dc2626; }
+.c-Не_обязательные_расходы { background: #ecfdf5; color: #059669; }
+.c-Транспорт  { background: #fce7f3;          color: #be185d; }
+.c-Мобильная_связь { background: #eff6ff; color: #2563eb; }
+.c-Домашний_интернет { background: #ecfdf5; color: #059669; }
+.c-VPN { background: #fffbeb; color: #d97706; }
+.c-Подписки   { background: var(--purple-lt); color: var(--purple); }
+.c-Другое     { background: var(--slate-lt);  color: var(--slate); }
+
+/* EMPTY STATES */
+.empty-state { text-align: center; padding: 28px 20px; color: var(--ink-3); }
+.empty-icon  { font-size: 1.8rem; margin-bottom: 6px; }
+.empty-text  { font-size: .82rem; }
+
+/* HIDE MOBILE */
+@media (max-width: 767px) {
+  .hide-mobile { display: none !important; }
+}
+
+/* CHART */
+.chart-wrap {
+  position: relative; height: 220px;
+  display: flex; align-items: center; justify-content: center;
+}
+@media (min-width: 768px) { .chart-wrap { height: 240px; } }
+@media (max-width: 767px) { .chart-wrap { height: 200px; } }
+@media (max-width: 560px) { .chart-wrap { height: 180px; } }
+@media (max-width: 420px) { .chart-wrap { height: 160px; } }
+
+@media (min-width: 1200px) {
+  main { padding: 40px 28px 0; }
+  .kpi-grid { gap: 14px; }
+  .card-body { padding: 20px 24px; }
+  .card-hdr { padding: 18px 22px 16px; }
+}
+@media (min-width: 1600px) {
+  main { max-width: 1400px; }
+  .kpi-grid { gap: 18px; }
+  .card { border-radius: 24px; }
+}
+
+/* TOAST */
+.toast {
+  position: fixed; bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom));
+  left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--ink); color: #fff; font-size: .8rem; font-weight: 500;
+  padding: 12px 20px; border-radius: 100px; opacity: 0;
+  transition: all .4s ease; pointer-events: none;
+  z-index: 999; white-space: nowrap; box-shadow: var(--sh-lg);
+  animation: slideInUp .3s ease-out;
+}
+.toast.show {
+  opacity: 1; transform: translateX(-50%) translateY(0);
+  animation: bounceIn .4s ease-out;
+}
+@media (min-width: 768px) { .toast { bottom: 28px; } }
+
+/* AUTH STYLES */
+.auth-container {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  background: #f4f7fb;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; z-index: 10000;
+  overflow: auto;
+}
+.auth-container::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(37,99,235,0.14), transparent 25%),
+              radial-gradient(circle at 80% 10%, rgba(124,58,237,0.14), transparent 18%),
+              radial-gradient(circle at 90% 80%, rgba(59,130,246,0.08), transparent 20%);
+}
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%; max-width: 360px;
+  background: #ffffff;
+  border-radius: 22px;
+  padding: 38px 28px;
+  box-shadow: 0 30px 70px rgba(15, 23, 42, 0.12);
+  min-height: auto;
+}
+.auth-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 22px;
+  pointer-events: none;
+  background: linear-gradient(180deg, rgba(255,255,255,0.5), transparent 60%);
+}
+.auth-logo-wrap {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  margin-bottom: 30px;
+}
+.auth-icon {
+  width: 58px; height: 58px;
+  display: grid; place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  color: #ffffff; font-size: 1.8rem;
+  box-shadow: 0 18px 40px rgba(37,99,235,0.24);
+}
+.auth-title {
+  font-size: 2rem; font-weight: 800; color: #0f172a;
+}
+.auth-form {
+  display: grid; gap: 16px;
+}
+.input-group {
+  position: relative;
+  display: flex; align-items: center;
+  padding: 14px 14px 14px 48px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+}
+.input-addon {
+  position: absolute; left: 16px;
+  color: #94a3b8;
+  font-size: 1.05rem;
+}
+.input-group input {
+  width: 100%; border: none; background: transparent;
+  font-size: 1rem; color: #0f172a;
+  outline: none;
+}
+.input-group input::placeholder {
+  color: #94a3b8;
+}
+.checkbox-row {
+  display: flex; align-items: center;
+}
+.checkbox-label {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 0.95rem; color: #64748b; cursor: pointer;
+}
+.checkbox-label:hover { color: #334155; }
+.checkbox-label input[type="checkbox"] {
+  position: absolute; opacity: 0; pointer-events: none;
+}
+.checkmark {
+  width: 18px; height: 18px;
+  border-radius: 6px;
+  border: 2px solid #cbd5e1;
+  display: grid; place-items: center;
+  transition: all 0.2s ease;
+}
+.checkbox-label input[type="checkbox"]:checked ~ .checkmark {
+  background: #2563eb;
+  border-color: #2563eb;
+}
+.checkmark::after {
+  content: '';
+  width: 5px; height: 9px;
+  border: solid #fff; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+  display: none;
+}
+.checkbox-label input[type="checkbox"]:checked ~ .checkmark::after {
+  display: block;
+}
+.auth-btn {
+  width: 100%; padding: 15px 20px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff; border: none; border-radius: 14px;
+  font-size: 1rem; font-weight: 700;
+  cursor: pointer; transition: transform 0.2s ease, background 0.2s ease;
+}
+.auth-btn:hover {
+  transform: translateY(-1px);
+  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+}
+.auth-error {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px 14px; border-radius: 14px;
+  background: #fee2e2; color: #991b1b;
+  border: 1px solid #fecaca;
+  font-size: 0.95rem;
+}
+.error-icon { font-size: 1rem; }
+.error-text { flex: 1; }
+.auth-footer {
+  margin-top: 22px; text-align: center;
+}
+.auth-link {
+  color: #94a3b8; font-size: 0.9rem; text-decoration: none;
+}
+.auth-link:hover { color: #475569; }
+
+@media (max-width: 480px) {
+  .auth-card { padding: 30px 22px; }
+  .auth-title { font-size: 1.75rem; }
+  .input-group { padding-left: 44px; }
+}
+
+.auth-card { max-width: 420px; }
+
+@keyframes gradientShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(30px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes iconBounce {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+@keyframes logoSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes labelSlideIn {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+@keyframes errorShake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+@keyframes decorPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* RESPONSIVE AUTH */
+@media (max-width: 480px) {
+  .auth-card { padding: 32px 24px; margin: 20px; max-width: none; }
+  .auth-logo { font-size: 2.4rem; }
+  .auth-icon { font-size: 2.5rem; }
+  .form-group input { padding: 14px 16px; }
+  .auth-btn { padding: 16px 20px; font-size: 1rem; }
+}
+
+/* ANIMATIONS */
+@keyframes fadeUp    { from { opacity:0; transform:translateY(20px) scale(.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes fadeSlide { from { opacity:0; transform:translateY(8px) scale(.98);  } to { opacity:1; transform:translateY(0) scale(1); } }
+@keyframes slideInLeft { from { opacity:0; transform:translateX(-20px); } to { opacity:1; transform:translateX(0); } }
+@keyframes slideInRight { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }
+@keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.02); } }
+@keyframes shimmer { 0% { background-position: -200px 0; } 100% { background-position: calc(200px + 100%) 0; } }
+@keyframes bounceIn { 0% { opacity:0; transform:scale(.3); } 50% { opacity:1; transform:scale(1.05); } 70% { transform:scale(.9); } 100% { opacity:1; transform:scale(1); } }
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-3px); } }
+@keyframes slideInUp { from { opacity:0; transform:translateY(30px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+.kpi-card { animation: fadeUp .4s ease both; }
+.kpi-card:nth-child(1) { animation-delay:.08s; }
+.kpi-card:nth-child(2) { animation-delay:.16s; }
+.kpi-card:nth-child(3) { animation-delay:.24s; }
+.kpi-card:nth-child(4) { animation-delay:.32s; }
+
+.card { animation: slideInLeft .35s ease both; }
+.card:nth-child(odd) { animation-name: slideInLeft; }
+.card:nth-child(even) { animation-name: slideInRight; animation-delay: .1s; }
+
+.pay-row, .exp-row { animation: fadeSlide .25s ease-out both; }
+.pay-row:nth-child(1) { animation-delay:.02s; }
+.pay-row:nth-child(2) { animation-delay:.04s; }
+.pay-row:nth-child(3) { animation-delay:.06s; }
+.pay-row:nth-child(4) { animation-delay:.08s; }
+.pay-row:nth-child(5) { animation-delay:.10s; }
+.exp-row:nth-child(1) { animation-delay:.02s; }
+.exp-row:nth-child(2) { animation-delay:.04s; }
+.exp-row:nth-child(3) { animation-delay:.06s; }
+.exp-row:nth-child(4) { animation-delay:.08s; }
+.exp-row:nth-child(5) { animation-delay:.10s; }
+
+/* INTERACTIVE EFFECTS */
+.kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--sh-lg);
+  transition: all .3s ease;
+}
+
+.card:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--sh-lg);
+  transition: all .3s ease;
+}
+
+.pay-row:hover, .exp-row:hover {
+  transform: translateX(2px);
+  transition: all .2s ease;
+}
+
+.nav-btn:hover {
+  transform: scale(1.05);
+  transition: all .2s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0,0,0,.15);
+  transition: all .2s ease;
+}
+
+.btn:active {
+  transform: translateY(0) scale(.98);
+  transition: all .1s ease;
+}
+
+.btn-del:hover, .btn-edit:hover {
+  transform: scale(1.1);
+  transition: all .15s ease;
+}
+
+.collapse-trigger:hover {
+  transform: scale(1.05);
+  transition: all .2s ease;
+}
+
+.theme-option:hover {
+  transform: translateX(4px);
+  transition: all .2s ease;
+}
+
+input:focus, select:focus {
+  transform: scale(1.01);
+  transition: all .2s ease;
+}
+
+/* LOADING STATES */
+.loading-shimmer {
+  background: linear-gradient(90deg, var(--border) 25%, var(--surface) 50%, var(--border) 75%);
+  background-size: 200px 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* SUCCESS ANIMATIONS */
+.success-pulse {
+  animation: pulse .6s ease-in-out;
+}
+
+.bounce-in {
+  animation: bounceIn .5s ease-out;
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* MODALS */
+.modal {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.5); display: none; z-index: 1000;
+  align-items: center; justify-content: center; padding: 20px;
+  backdrop-filter: blur(2px);
+  animation: fadeIn .2s ease-out;
+}
+.modal.show { display: flex; }
+.modal-content {
+  background: var(--surface); border-radius: var(--r); padding: 24px;
+  max-width: 400px; width: 100%; max-height: 90vh; overflow-y: auto;
+  box-shadow: var(--sh-lg);
+  animation: bounceIn .3s ease-out;
+  transform-origin: center;
+}
+
+.modal-header { margin-bottom: 20px; }
+.modal-title { font-size: 1.25rem; font-weight: 700; margin-bottom: 4px; }
+.modal-close {
+  position: absolute; top: 16px; right: 16px;
+  background: none; border: none; font-size: 1.5rem; cursor: pointer;
+  color: var(--ink-3); padding: 4px;
+}
+.modal-close:hover { color: var(--ink); }
+.modal-body .fields { margin-bottom: 20px; }
+.modal-footer { display: flex; gap: 12px; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<!-- AUTH FORM -->
+<div id="authContainer" class="auth-container">
+  <div class="auth-card">
+    <div class="auth-logo-wrap">
+      <div class="auth-icon">☁️</div>
+      <div class="auth-title">Login</div>
+    </div>
+    <form id="authForm" class="auth-form" onsubmit="handleLogin(event)">
+      <div class="input-group">
+        <span class="input-addon">👤</span>
+        <input type="text" id="username" required autocomplete="username" placeholder="Username">
+      </div>
+      <div class="input-group">
+        <span class="input-addon">🔒</span>
+        <input type="password" id="password" required autocomplete="current-password" placeholder="Password">
+      </div>
+      <div class="form-row checkbox-row">
+        <label class="checkbox-label">
+          <input type="checkbox" id="showPassword" onchange="togglePasswordVisibility()">
+          <span class="checkmark"></span>
+          <span class="checkbox-text">Показать пароль</span>
+        </label>
+      </div>
+      <button type="submit" class="auth-btn">
+        Sign In
+      </button>
+      <div id="authError" class="auth-error" style="display:none;">
+        <span class="error-icon">⚠️</span>
+        <span class="error-text"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="mainApp" style="display:none;">
+
+<header>
+  <div class="logo">Fin<em>Flow</em></div>
+  <div class="hdr-meta">
+    <div class="hdr-sync pending" id="dbSyncStatus">Проверка связи...</div>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <div class="hdr-theme" onclick="toggleThemeMenu()">
+      <span>⚙️</span>
+      <span id="themeLabel">Тема</span>
+      <div class="theme-menu" id="themeMenu">
+        <button class="theme-option" onclick="setTheme('light')">☀️ Светлая</button>
+        <button class="theme-option" onclick="setTheme('dark')">🌙 Тёмная</button>
+        <button class="theme-option" onclick="setTheme('auto')">🔄 Авто</button>
+      </div>
+    </div>
+    <button class="hdr-reset" onclick="resetAll()">↺ Сбросить</button>
+    <button class="hdr-logout" onclick="logout()">🚪 Выйти</button>
+  </div>
+</header>
+
+<main>
+
+<!-- ══════ TAB: ОБЗОР ══════ -->
+<div id="tab-overview" class="tab-section active">
+
+  <div class="kpi-grid">
+    <div class="kpi-card k-income">
+      <div class="kpi-label">Получено</div>
+      <div class="kpi-val g" id="kpiIncome">0 ₽</div>
+      <div class="kpi-sub" id="kpiPayCount">0 выплат</div>
+      <div class="plan-progress" id="planProgressWrap" style="display:none">
+        <div class="plan-bar-bg"><div class="plan-bar" id="planBar"></div></div>
+        <div class="plan-label" id="planLabel"></div>
+      </div>
+    </div>
+    <div class="kpi-card k-expense">
+      <div class="kpi-label">Расходы</div>
+      <div class="kpi-val r" id="kpiExpenses">0 ₽</div>
+      <div class="kpi-sub" id="kpiExpCount">0 записей</div>
+    </div>
+    <div class="kpi-card k-balance">
+      <div class="kpi-label">Баланс</div>
+      <div class="kpi-val b" id="kpiBalance">0 ₽</div>
+      <div class="kpi-sub" id="kpiStatus">—</div>
+      <div class="progress-wrap"><div class="progress-bar" id="kpiProgress" style="width:0%"></div></div>
+    </div>
+    <div class="kpi-card k-saved">
+      <div class="kpi-label">Накоплено</div>
+      <div class="kpi-val b" id="kpiSavings">0 ₽</div>
+      <div class="kpi-sub">Общее количество накоплений</div>
+      <div class="plan-progress" id="savingProgressWrap">
+        <div class="plan-bar-bg"><div class="plan-bar" id="savingProgressBar"></div></div>
+        <div class="plan-label" id="savingProgressLabel">Цель: 200 000 ₽</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Экспорт отчетов</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="export-buttons">
+        <button class="btn btn-secondary" onclick="exportPaymentsCSV()">
+          📊 Скачать доходы (CSV)
+        </button>
+        <button class="btn btn-secondary" onclick="exportExpensesCSV()">
+          💸 Скачать расходы (CSV)
+        </button>
+        <button class="btn btn-secondary" onclick="exportSavingsCSV()">
+          💰 Скачать накопления (CSV)
+        </button>
+        <button class="btn btn-green" onclick="exportReportPDF()">
+          📄 Скачать отчёт (PDF)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-b">📅</div>
+      <div>
+        <div class="card-title">Месячный обзор</div>
+        <div class="card-sub">Доходы, расходы и накопления за выбранный месяц</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Период</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px;">
+            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;" id="filterWeek" onclick="setPeriodFilter('week')">📆 Неделя</button>
+            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--blue);border-radius:6px;background:var(--surface);color:var(--blue);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;font-weight:600;" id="filterMonth" onclick="setPeriodFilter('month')">📅 Месяц</button>
+            <button class="btn" style="flex:1;padding:8px;border:2px solid var(--border);border-radius:6px;background:var(--surface);color:var(--ink);cursor:pointer;font-family:var(--ff);font-size:.85rem;transition:all .2s ease;" id="filterYear" onclick="setPeriodFilter('year')">📊 Год</button>
+          </div>
+        </div>
+        <div class="field span2">
+          <label>Месяц</label>
+          <select id="monthSelect"></select>
+        </div>
+      </div>
+      <div class="kpi-grid month-summary-grid">
+        <div class="kpi-card k-income">
+          <div class="kpi-label">Доходы</div>
+          <div class="kpi-val g" id="monthIncome">0 ₽</div>
+          <div class="kpi-sub" id="monthIncomeCount">0 выплат</div>
+        </div>
+        <div class="kpi-card k-expense">
+          <div class="kpi-label">Расходы</div>
+          <div class="kpi-val r" id="monthExpenses">0 ₽</div>
+          <div class="kpi-sub" id="monthExpensesCount">0 записей</div>
+        </div>
+        <div class="kpi-card k-saved">
+          <div class="kpi-label">Накоплено</div>
+          <div class="kpi-val b" id="monthSavings">0 ₽</div>
+          <div class="kpi-sub" id="monthSavingsCount">0 накоплений</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Расходы по категориям</div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">📈</div>
+      <div>
+        <div class="card-title">Диаграмма по выбранному месяцу</div>
+        <div class="card-sub" id="chartMonthLabel">За текущий месяц</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="chartCanvas"></canvas>
+        <div id="chartEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">Добавьте расходы для графика</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title hide-mobile">Последние расходы</div>
+  <div class="card hide-mobile">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">🧾</div>
+      <div class="card-title">Последние расходы</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('recentBody','recentArrow')">
+        <span class="collapse-arrow" id="recentArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="recentBody">
+      <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
+        <div id="recentList" class="exp-list"></div>
+        <div id="recentEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">🧾</div>
+          <div class="empty-text">Расходов пока нет</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════ TAB: ДОХОД ══════ -->
+<div id="tab-income" class="tab-section">
+
+  <!-- Форма добавления выплаты -->
+  <div class="section-title">Журнал выплат</div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-g">💰</div>
+      <div>
+        <div class="card-title">Записать полученную выплату</div>
+        <div class="card-sub">Аванс, зарплата, доплата — любая сумма</div>
+      </div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('payFormBody','payFormArrow')">
+        <span class="collapse-arrow" id="payFormArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="payFormBody">
+      <div class="card-body">
+        <div class="fields">
+          <div class="field span2">
+            <label>Название / комментарий</label>
+            <input type="text" id="payLabel" placeholder="Аванс, зарплата, доплата…" />
+          </div>
+          <div class="field">
+            <label>Сумма (₽)</label>
+            <input type="number" id="payAmount" placeholder="0" min="0" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>Дата получения</label>
+            <input type="date" id="payDate" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="addPayment()">+ Записать выплату</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Накопленные средства -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-g">🏦</div>
+      <div>
+        <div class="card-title">Накопленные средства</div>
+        <div class="card-sub">Отслеживание сбережений</div>
+      </div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('savFormBody','savFormArrow')">
+        <span class="collapse-arrow" id="savFormArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="savFormBody">
+      <div class="card-body">
+        <div class="fields">
+          <div class="field span2">
+            <label>Название</label>
+            <input type="text" id="savLabel" placeholder="Депозит, инвестиция…" />
+          </div>
+          <div class="field">
+            <label>Сумма (₽)</label>
+            <input type="number" id="savAmount" placeholder="0" min="0" inputmode="decimal" />
+          </div>
+          <div class="field">
+            <label>Дата</label>
+            <input type="date" id="savDate" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="addSavings()">+ Добавить накопление</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Список накоплений -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-g">💎</div>
+      <div class="card-title">История накоплений</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('savListBody','savListArrow')">
+        <span class="collapse-arrow" id="savListArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="savListBody">
+      <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+        <div id="savList" class="pay-list"></div>
+        <div id="savEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">💎</div>
+          <div class="empty-text">Накоплений ещё нет. Добавьте первое!</div>
+        </div>
+        <div class="pay-total-row" id="savTotalRow" style="display:none">
+          <span class="pay-total-label">Итого накоплено</span>
+          <span class="pay-total-amt" id="savTotalAmt">0 ₽</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Список выплат -->
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-g">📋</div>
+      <div class="card-title">Все выплаты</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('payListBody','payListArrow')">
+        <span class="collapse-arrow" id="payListArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="payListBody">
+      <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+        <div id="payList" class="pay-list"></div>
+        <div id="payEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">💸</div>
+          <div class="empty-text">Выплат ещё нет. Запишите первую!</div>
+        </div>
+        <div class="pay-total-row" id="payTotalRow" style="display:none">
+          <span class="pay-total-label">Итого получено</span>
+          <span class="pay-total-amt" id="payTotalAmt">0 ₽</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Калькулятор (свёрнут) -->
+  <div class="card">
+    <div class="card-body">
+      <button class="collapse-toggle" onclick="toggleCalc()">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div class="card-ico ico-a" style="flex-shrink:0">🧮</div>
+          <div style="text-align:left">
+            <div class="card-title">Калькулятор зарплаты</div>
+            <div class="card-sub">Рассчитать ожидаемый доход</div>
+          </div>
+        </div>
+        <span class="collapse-arrow" id="calcArrow">▼</span>
+      </button>
+      <div class="collapse-body closed" id="calcBody">
+        <div class="divider"></div>
+        <div class="fields">
+          <div class="field">
+            <label>Ставка за смену (₽)</label>
+            <input type="number" id="shiftRate" placeholder="2 500" min="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label>Количество смен</label>
+            <input type="number" id="shiftCount" placeholder="15" min="0" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label>Рабочих дней</label>
+            <input type="number" id="workDays" placeholder="22" min="1" max="31" value="22" inputmode="numeric" />
+          </div>
+          <div class="field">
+            <label>Премия (₽)</label>
+            <input type="number" id="bonus" placeholder="0" min="0" inputmode="numeric" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="calculateIncome()">⚡ Рассчитать план</button>
+        <div class="result-box" id="incomeResult">
+          <div class="res-row"><span>Оклад (смены × ставка)</span><strong id="rSalary">—</strong></div>
+          <div class="res-row"><span>Премия</span><strong id="rBonus">—</strong></div>
+          <div class="res-row"><span>Итого брутто</span><strong id="rTotal">—</strong></div>
+          <div class="res-row"><span>Налог 13%</span><strong id="rTax">—</strong></div>
+          <div class="res-row"><span>Итого нетто</span><strong id="rNet">—</strong></div>
+          <div class="res-row"><span>Средний доход / день (нетто)</span><strong id="rDay">—</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════ TAB: РАСХОДЫ ══════ -->
+<div id="tab-expenses" class="tab-section">
+
+  <div class="section-title">Новый расход</div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">➕</div>
+      <div class="card-title">Добавить расход</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('newExpBody','newExpArrow')">
+        <span class="collapse-arrow" id="newExpArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="newExpBody">
+      <div class="card-body">
+        <div class="fields">
+          <div class="field span2">
+            <label>Название</label>
+            <input type="text" id="expName" placeholder="Продукты, аренда, кафе…" />
+          </div>
+          <div class="field">
+            <label>Категория</label>
+            <select id="expCat">
+              <option>Еда</option>
+              <option>Обязательные расходы</option>
+              <option>Не обязательные расходы</option>
+              <option>Транспорт</option>
+              <option>Мобильная связь</option>
+              <option>Домашний интернет</option>
+              <option>VPN</option>
+              <option>Подписки</option>
+              <option>Другое</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Сумма (₽)</label>
+            <input type="number" id="expAmount" placeholder="0" min="0" inputmode="decimal" />
+          </div>
+          <div class="field span2">
+            <label>Дата</label>
+            <input type="date" id="expDate" />
+          </div>
+          <div class="field span2">
+            <label>Теги (через запятую)</label>
+            <input type="text" id="expTags" placeholder="работа, срочно, онлайн…" />
+          </div>
+        </div>
+        <button class="btn btn-green btn-full" onclick="addExpense()">+ Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Поиск и фильтры</div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">🔍</div>
+      <div class="card-title">Поиск и расширенные фильтры</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('advFilterBody','advFilterArrow')">
+        <span class="collapse-arrow" id="advFilterArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="advFilterBody">
+      <div class="card-body">
+        <div class="fields">
+          <div class="field span2">
+            <label>Поиск по названию</label>
+            <input type="text" id="filterSearchInput" placeholder="Введите название расхода..." onkeyup="applyAdvancedFilters()" />
+          </div>
+          <div class="field">
+            <label>Категория</label>
+            <select id="filterCategory" onchange="applyAdvancedFilters()">
+              <option value="">Все категории</option>
+              <option>Еда</option>
+              <option>Обязательные расходы</option>
+              <option>Не обязательные расходы</option>
+              <option>Транспорт</option>
+              <option>Мобильная связь</option>
+              <option>Домашний интернет</option>
+              <option>VPN</option>
+              <option>Подписки</option>
+              <option>Другое</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Минимальная сумма (₽)</label>
+            <input type="number" id="filterMinAmount" placeholder="0" min="0" onchange="applyAdvancedFilters()" />
+          </div>
+          <div class="field">
+            <label>Максимальная сумма (₽)</label>
+            <input type="number" id="filterMaxAmount" placeholder="10000" min="0" onchange="applyAdvancedFilters()" />
+          </div>
+          <div class="field">
+            <label>От даты</label>
+            <input type="date" id="filterDateFrom" onchange="applyAdvancedFilters()" />
+          </div>
+          <div class="field">
+            <label>До даты</label>
+            <input type="date" id="filterDateTo" onchange="applyAdvancedFilters()" />
+          </div>
+          <div class="field span2">
+            <label>Тег</label>
+            <input type="text" id="filterTag" placeholder="Поиск по тегу..." onkeyup="applyAdvancedFilters()" />
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-green" onclick="saveCurrentFilter()" style="flex:1;min-width:140px;">💾 Сохранить фильтр</button>
+          <button class="btn btn-secondary" onclick="resetAdvancedFilters()" style="flex:1;min-width:140px;">🔄 Сбросить</button>
+        </div>
+        <div id="savedFiltersContainer" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Все расходы</div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">🧾</div>
+      <div class="card-title">Все расходы</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('fullExpBody','fullExpArrow')">
+        <span class="collapse-arrow" id="fullExpArrow">▼</span>
+      </button>
+    </div>
+    <div class="collapse-body closed" id="fullExpBody">
+      <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
+          <input type="text" id="expSearchInput" placeholder="🔍 Поиск по названию..." style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--ff);color:var(--ink);background:var(--surface);" onkeyup="filterExpenses()" />
+        </div>
+        <div id="fullList" class="exp-list"></div>
+        <div id="fullEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">🧾</div>
+          <div class="empty-text">Расходов пока нет. Добавьте первый!</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══════ TAB: СТАТИСТИКА ══════ -->
+<div id="tab-stats" class="tab-section">
+  <div class="section-title">Статистика расходов</div>
+  <div style="margin-bottom:12px;">
+    <button class="btn btn-green" type="button" onclick="exportReportPDF()" style="width:100%;">
+      📄 Скачать отчёт (PDF)
+    </button>
+  </div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">📊</div>
+      <div>
+        <div class="card-title">Аналитика расходов</div>
+        <div class="card-sub">Средние траты по категориям и тенденции за последние месяцы</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="kpi-grid">
+        <div class="kpi-card k-expense">
+          <div class="kpi-label">Средний расход</div>
+          <div class="kpi-val r" id="statsAvgExpense">0 ₽</div>
+          <div class="kpi-sub" id="statsAvgCount">за одну запись</div>
+        </div>
+        <div class="kpi-card k-balance">
+          <div class="kpi-label">Топ категория</div>
+          <div class="kpi-val b" id="statsTopCategory">—</div>
+          <div class="kpi-sub" id="statsTopCategorySum">—</div>
+        </div>
+        <div class="kpi-card k-saved">
+          <div class="kpi-label">Категорий</div>
+          <div class="kpi-val b" id="statsCategoriesCount">0</div>
+          <div class="kpi-sub">активных категорий</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Средние расходы по категориям</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="statsCatChart"></canvas>
+        <div id="statsCatEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">Добавьте расходы, чтобы увидеть аналитику</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Тренд расходов</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="statsTrendChart"></canvas>
+        <div id="statsTrendEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">📈</div>
+          <div class="empty-text">Добавьте расходы, чтобы увидеть тренд</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Средние расходы по категориям</div>
+  <div class="card">
+    <div class="card-body" id="statsTable"></div>
+  </div>
+
+  <div class="section-title">Сравнение месяцев</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="statsComparisonChart"></canvas>
+        <div id="statsComparisonEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">📊</div>
+          <div class="empty-text">Добавьте расходы, чтобы сравнить месяцы</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">График баланса за время</div>
+  <div class="card">
+    <div class="card-body">
+      <div class="chart-wrap">
+        <canvas id="statsBalanceChart"></canvas>
+        <div id="statsBalanceEmpty" class="empty-state" style="display:none">
+          <div class="empty-icon">📈</div>
+          <div class="empty-text">Добавьте доходы и расходы для просмотра графика баланса</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<nav class="bottom-nav">
+  <button class="nav-btn active" id="nav-overview"  onclick="switchTab('overview')">
+    <span class="nav-icon">📈</span>Обзор
+  </button>
+  <button class="nav-btn" id="nav-income"   onclick="switchTab('income')">
+    <span class="nav-icon">💰</span>Доход
+  </button>
+  <button class="nav-btn" id="nav-stats" onclick="switchTab('stats')">
+    <span class="nav-icon">📊</span>Статистика
+  </button>
+  <button class="nav-btn" id="nav-expenses" onclick="switchTab('expenses')">
+    <span class="nav-icon">🧾</span>Расходы
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ═══ SUPABASE ════════════════════════════════════ */
+const supabaseUrl = 'https://laddtgwwirdkziypfhyn.supabase.co'; // Замените на ваш URL
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxhZGR0Z3d3aXJka3ppeXBmaHluIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzNDEwOTgsImV4cCI6MjA5MDkxNzA5OH0.VY3Uck1D308KOMw1eQwtLnxZT_tHxAs9kx5ldU-2giM'; // Замените на ваш ключ
+const supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
+
+/* ═══ STATE ═══════════════════════════════════════ */
+let S = {
+  payments: [],       // { id, label, amount, date }
+  plannedIncome: 0,   // from salary calculator
+  avgDay: 0,
+  _rate:0, _count:0, _days:22, _bonus:0,
+  expenses: [],       // { id, name, cat, amount, date, tags: [] }
+  savings: []         // { id, label, amount, date }
+};
+
+const CAT_COLORS = {
+  'Еда':'#d97706', 'Обязательные расходы':'#dc2626',
+  'Не обязательные расходы':'#059669', 'Транспорт':'#ec4899', 'Мобильная связь':'#3b82f6', 'Домашний интернет':'#10b981', 'VPN':'#f59e0b', 'Подписки':'#7c3aed', 'Другое':'#64748b'
+};
+
+function parseExpenseTags(raw) {
+  if (!raw) return [];
+  if (Array.isArray(raw)) return raw.map(t => String(t).trim()).filter(Boolean);
+  if (typeof raw === 'string') return raw.split(',').map(t => t.trim()).filter(Boolean);
+  return [];
+}
+
+function parseTagsInput(str) {
+  return str ? str.split(',').map(t => t.trim()).filter(t => t) : [];
+}
+
+function expenseRowForDb({ name, cat, amount, date, tags }, includeTags) {
+  const row = { name, cat, amount, date };
+  if (includeTags) row.tags = tags || [];
+  return row;
+}
+
+function isMissingTagsColumnError(error) {
+  return error?.code === 'PGRST204' && String(error.message || '').includes("'tags'");
+}
+
+let dbExpenseTagsSupported = null;
+
+function expenseTagsStorageKey() {
+  return `finflow-expense-tags:${getUserId()}`;
+}
+
+function loadExpenseTagsMap() {
+  try {
+    return JSON.parse(localStorage.getItem(expenseTagsStorageKey()) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveExpenseTagsMap(map) {
+  try {
+    localStorage.setItem(expenseTagsStorageKey(), JSON.stringify(map));
+  } catch (_) {}
+}
+
+function persistExpenseTags(id, tags) {
+  const map = loadExpenseTagsMap();
+  const list = parseExpenseTags(tags);
+  if (list.length) map[id] = list;
+  else delete map[id];
+  saveExpenseTagsMap(map);
+}
+
+function applyStoredExpenseTags(expense) {
+  if (!expense || expense.id == null) return expense;
+  const stored = loadExpenseTagsMap()[expense.id];
+  if (stored) expense.tags = parseExpenseTags(stored);
+  else if (!expense.tags) expense.tags = parseExpenseTags(expense.tags);
+  return expense;
+}
+
+function mergeExpensesWithStoredTags(expenses) {
+  return (expenses || []).map(e => applyStoredExpenseTags({ ...e, tags: parseExpenseTags(e.tags) }));
+}
+
+async function probeExpenseTagsColumn() {
+  try {
+    const { error } = await supabaseClient.from('expenses').select('tags').limit(1);
+    if (isMissingTagsColumnError(error)) {
+      dbExpenseTagsSupported = false;
+    } else {
+      dbExpenseTagsSupported = !error;
+    }
+  } catch {
+    dbExpenseTagsSupported = false;
+  }
+  return dbExpenseTagsSupported;
+}
+
+function canSyncExpenseTags() {
+  return dbExpenseTagsSupported === true;
+}
+
+async function insertExpense(row) {
+  if ('tags' in row && !canSyncExpenseTags()) {
+    const { tags, ...rowWithoutTags } = row;
+    const result = await supabaseClient.from('expenses').insert([rowWithoutTags]).select();
+    if (!result.error && result.data?.[0]) result.data[0].tags = tags || [];
+    return result;
+  }
+  let result = await supabaseClient.from('expenses').insert([row]).select();
+  if (isMissingTagsColumnError(result.error) && 'tags' in row) {
+    dbExpenseTagsSupported = false;
+    const { tags, ...rowWithoutTags } = row;
+    result = await supabaseClient.from('expenses').insert([rowWithoutTags]).select();
+    if (!result.error && result.data?.[0]) result.data[0].tags = tags || [];
+  }
+  return result;
+}
+
+async function updateExpense(id, row) {
+  if ('tags' in row && !canSyncExpenseTags()) {
+    const { tags, ...rowWithoutTags } = row;
+    const result = await supabaseClient.from('expenses').update(rowWithoutTags).eq('id', id);
+    return { ...result, _localTags: tags || [] };
+  }
+  let result = await supabaseClient.from('expenses').update(row).eq('id', id);
+  if (isMissingTagsColumnError(result.error) && 'tags' in row) {
+    dbExpenseTagsSupported = false;
+    const { tags, ...rowWithoutTags } = row;
+    result = await supabaseClient.from('expenses').update(rowWithoutTags).eq('id', id);
+    return { ...result, _localTags: tags || [] };
+  }
+  return result;
+}
+
+let isAuthenticated = false;
+
+/* ═══ THEME ═══════════════════════════════════════ */
+function initTheme() {
+  const savedTheme = localStorage.getItem('finflow-theme') || 'auto';
+  applyTheme(savedTheme);
+  updateThemeUI(savedTheme);
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.removeAttribute('data-theme');
+  } else if (theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', 'dark');
+  } else if (theme === 'auto') {
+    const hour = new Date().getHours();
+    const isDark = hour < 6 || hour >= 20;
+    if (isDark) document.documentElement.setAttribute('data-theme', 'dark');
+    else document.documentElement.removeAttribute('data-theme');
+  }
+  localStorage.setItem('finflow-theme', theme);
+}
+
+function getTotalExpenses() {
+  return (S.expenses || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+}
+
+function setTheme(theme) {
+  applyTheme(theme);
+  updateThemeUI(theme);
+  closeThemeMenu();
+  rerenderThemeAwareCharts();
+}
+
+function getChartThemeColors() {
+  const styles = getComputedStyle(document.documentElement);
+  return {
+    text: styles.getPropertyValue('--chart-text').trim() || '#111827',
+    grid: styles.getPropertyValue('--chart-grid').trim() || 'rgba(17,24,39,.08)',
+    tooltipBg: styles.getPropertyValue('--chart-tooltip-bg').trim() || '#ffffff',
+    tooltipText: styles.getPropertyValue('--chart-tooltip-text').trim() || '#111827',
+    border: styles.getPropertyValue('--chart-border').trim() || '#ffffff'
+  };
+}
+
+function rerenderThemeAwareCharts() {
+  const monthKey = currentMonthKey || getMonthKey(todayISO());
+  renderChart(getTotalExpenses(), monthKey);
+  renderStats();
+}
+
+function toggleThemeMenu() {
+  const menu = el('themeMenu');
+  if (!menu) return;
+  menu.classList.toggle('show');
+}
+
+function closeThemeMenu() {
+  const menu = el('themeMenu');
+  if (menu) menu.classList.remove('show');
+}
+
+function updateThemeUI(theme) {
+  const buttons = document.querySelectorAll('.theme-option');
+  buttons.forEach(btn => btn.classList.remove('active'));
+  
+  const labels = { light: '☀️ Светлая', dark: '🌙 Тёмная', auto: '🔄 Авто' };
+  el('themeLabel').textContent = labels[theme] || 'Тема';
+  
+  buttons.forEach(btn => {
+    const btnTheme = btn.textContent.includes('Светлая') ? 'light' 
+                   : btn.textContent.includes('Тёмная') ? 'dark' 
+                   : 'auto';
+    if (btnTheme === theme) btn.classList.add('active');
+  });
+}
+
+/* ═══ AUTH FUNCTIONS ═════════════════════════════ */
+function setAuthUI(authenticated) {
+  isAuthenticated = !!authenticated;
+  el('authContainer').style.display = authenticated ? 'none' : 'flex';
+  el('mainApp').style.display = authenticated ? 'block' : 'none';
+}
+
+async function validateStoredAuth() {
+  const userId = localStorage.getItem('finflow-user');
+  if (!userId) return false;
+  if (isOffline()) return false; // auth is based only on DB data
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('users')
+      .select('id')
+      .eq('id', userId)
+      .single();
+    if (error || !data) throw error || new Error('no user');
+    return true;
+  } catch (_) {
+    localStorage.removeItem('finflow-user');
+    localStorage.removeItem('finflow-auth-at');
+    return false;
+  }
+}
+
+async function handleLogin(event) {
+  event.preventDefault();
+  
+  const username = el('username').value.trim();
+  const password = el('password').value;
+  const errorEl = el('authError');
+  
+  if (!username || !password) {
+    showAuthError('Введите логин и пароль');
+    return;
+  }
+  
+  try {
+    // Check credentials against Supabase users table
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+    
+    if (error || !users) {
+      showAuthError('Пользователь не найден');
+      return;
+    }
+    
+    // Verify password
+    if (users.password !== password) {
+      showAuthError('Неверный пароль');
+      return;
+    }
+    
+    // Success - show main app
+    localStorage.setItem('finflow-user', users.id);
+    localStorage.setItem('finflow-auth-at', String(Date.now()));
+    setAuthUI(true);
+    
+    // Continue with normal app initialization
+    await loadData();
+    refresh();
+    
+  } catch (err) {
+    console.error('Auth error:', err);
+    showAuthError('Ошибка подключения. Попробуйте позже.');
+  }
+}
+
+function showAuthError(message) {
+  const errorEl = el('authError');
+  const errorTextEl = errorEl.querySelector('.error-text');
+  if (errorTextEl) {
+    errorTextEl.textContent = message;
+  } else {
+    errorEl.textContent = message;
+  }
+  errorEl.style.display = 'flex';
+  
+  // Hide error after 3 seconds
+  setTimeout(() => {
+    errorEl.style.display = 'none';
+  }, 3000);
+}
+
+function togglePasswordVisibility() {
+  const passwordInput = el('password');
+  const checkbox = el('showPassword');
+  
+  if (checkbox.checked) {
+    passwordInput.type = 'text';
+  } else {
+    passwordInput.type = 'password';
+  }
+}
+
+function logout() {
+  setAuthUI(false);
+  localStorage.removeItem('finflow-user');
+  localStorage.removeItem('finflow-auth-at');
+  
+  // Clear form
+  el('username').value = '';
+  el('password').value = '';
+  el('authError').style.display = 'none';
+  
+  // Show auth form
+  setAuthUI(false);
+}
+
+document.addEventListener('click', (e) => {
+  const themeBtn = document.querySelector('.hdr-theme');
+  if (themeBtn && !themeBtn.contains(e.target)) {
+    closeThemeMenu();
+  }
+});
+
+/* ═══ BOOT ════════════════════════════════════════ */
+async function loadData() {
+  setSyncStatus('pending', 'Проверка связи с базой...');
+  try {
+    const { data: payments, error: paymentsError } = await supabaseClient.from('payments').select('*');
+    const { data: expenses, error: expensesError } = await supabaseClient.from('expenses').select('*');
+    const { data: savings, error: savingsError } = await supabaseClient.from('savings').select('*');
+    
+    if (paymentsError) throw paymentsError;
+    if (expensesError) throw expensesError;
+    
+    S.payments = payments || [];
+    await probeExpenseTagsColumn();
+    S.expenses = mergeExpensesWithStoredTags(expenses);
+    // Only throw if savings table error is not 404 (table not found)
+    if (savingsError && savingsError.code !== 'PGRST205') throw savingsError;
+    S.savings = (savingsError && savingsError.code === 'PGRST205') ? [] : (savings || []);
+    
+    setSyncStatus('ok', 'Синхронизировано с базой');
+    saveLocalCache();
+  } catch (e) {
+    console.error('Error loading data:', e);
+    if (isOffline()) {
+      const ok = loadLocalCache();
+      setSyncStatus('local', 'Локально');
+      if (!ok) showToast('📴 Нет интернета и нет локальных данных');
+    } else {
+      setSyncStatus('fail', 'Нет связи с базой');
+      showToast('❌ Не удалось загрузить данные из базы');
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+  initTheme();
+  
+  // Auth is validated only via DB (offline -> login screen)
+  const authed = await validateStoredAuth();
+  if (!authed) {
+    setAuthUI(false);
+    return;
+  }
+  setAuthUI(true);
+  
+  setInterval(() => {
+    const theme = localStorage.getItem('finflow-theme') || 'auto';
+    if (theme === 'auto') applyTheme('auto');
+  }, 60000);
+  
+  el('expDate').value = todayISO();
+  el('payDate').value = todayISO();
+
+  await loadData();
+  initMonthFilter();
+  refresh();
+
+  // Network status: show "Локально" only when offline
+  window.addEventListener('offline', () => {
+    const ok = loadLocalCache();
+    setSyncStatus('local', 'Локально');
+    if (ok) refresh();
+  });
+  window.addEventListener('online', async () => {
+    await loadData();
+    refresh();
+  });
+
+  if (S._rate)  el('shiftRate').value  = S._rate;
+  if (S._count) el('shiftCount').value = S._count;
+  if (S._days)  el('workDays').value   = S._days;
+  if (S._bonus) el('bonus').value      = S._bonus;
+  if (S.plannedIncome > 0) showIncomeResult();
+
+  checkDesktop();
+  window.addEventListener('resize', checkDesktop);
+});
+
+let currentMonthKey = null;
+let currentPeriodFilter = 'month'; // 'week', 'month', 'year'
+
+function getMonthKey(date) {
+  if (!date) return null;
+  const [year, month] = date.split('-');
+  return year && month ? `${year}-${month}` : null;
+}
+
+function getMonthLabel(key) {
+  if (!key) return 'Все месяцы';
+  const [year, month] = key.split('-');
+  const labels = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
+  return `${labels[Number(month) - 1] || month} ${year}`;
+}
+
+function buildMonthOptions() {
+  const allDates = [...S.payments, ...S.expenses, ...S.savings]
+    .map(item => getMonthKey(item.date))
+    .filter(Boolean);
+  const unique = [...new Set(allDates)].sort().reverse();
+  const select = el('monthSelect');
+  if (!select) return;
+  select.innerHTML = unique.map(key => `<option value="${key}">${getMonthLabel(key)}</option>`).join('');
+  if (!currentMonthKey && unique.length) currentMonthKey = unique[0];
+  if (currentMonthKey && unique.includes(currentMonthKey)) {
+    select.value = currentMonthKey;
+  } else if (unique.length) {
+    currentMonthKey = unique[0];
+    select.value = currentMonthKey;
+  }
+}
+
+function getMonthItems(items, monthKey) {
+  if (!monthKey) return items;
+  return items.filter(item => getMonthKey(item.date) === monthKey);
+}
+
+function getWeekNumber(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
+  const yearStart = new Date(d.getFullYear(), 0, 1);
+  const diff = d - yearStart;
+  const oneWeek = 1000 * 60 * 60 * 24 * 7;
+  return Math.floor(diff / oneWeek) + 1;
+}
+
+function getWeekKey(date) {
+  if (!date) return null;
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const week = getWeekNumber(date);
+  return `${year}-W${String(week).padStart(2, '0')}`;
+}
+
+function getYearKey(date) {
+  if (!date) return null;
+  const year = date.split('-')[0];
+  return year || null;
+}
+
+function getItemsByPeriod(items, period, startDate = null, endDate = null) {
+  if (period === 'week' && startDate && endDate) {
+    return items.filter(item => item.date >= startDate && item.date <= endDate);
+  } else if (period === 'month' && startDate) {
+    const monthKey = getMonthKey(startDate);
+    return getMonthItems(items, monthKey);
+  } else if (period === 'year' && startDate) {
+    const yearKey = getYearKey(startDate);
+    return items.filter(item => getYearKey(item.date) === yearKey);
+  }
+  return items;
+}
+
+function formatPeriodRange(period, date) {
+  if (period === 'week') {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    const weekStart = new Date(d.setDate(diff));
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+    return `${fmtDate(weekStart.toISOString().split('T')[0])} - ${fmtDate(weekEnd.toISOString().split('T')[0])}`;
+  } else if (period === 'month') {
+    const key = getMonthKey(date);
+    return `${getMonthLabel(key)} ${key.split('-')[0]}`;
+  } else if (period === 'year') {
+    return date.split('-')[0];
+  }
+  return '';
+}
+
+function initMonthFilter() {
+  currentMonthKey = localStorage.getItem('finflow-month');
+  currentPeriodFilter = localStorage.getItem('finflow-period') || 'month';
+  buildMonthOptions();
+  const select = el('monthSelect');
+  if (!select) return;
+  select.addEventListener('change', () => {
+    currentMonthKey = select.value;
+    localStorage.setItem('finflow-month', currentMonthKey);
+    refresh();
+  });
+  // Обновляем активную кнопку периода
+  setPeriodFilter(currentPeriodFilter);
+}
+
+function getPeriodSummary(monthKey) {
+  let incomeItems, expenseItems, savingsItems, periodLabel;
+
+  if (currentPeriodFilter === 'week' && monthKey) {
+    incomeItems = getItemsByPeriod(S.payments, 'week', monthKey, monthKey);
+    expenseItems = getItemsByPeriod(S.expenses, 'week', monthKey, monthKey);
+    savingsItems = getItemsByPeriod(S.savings, 'week', monthKey, monthKey);
+    periodLabel = `На неделю ${formatPeriodRange('week', monthKey)}`;
+  } else if (currentPeriodFilter === 'year' && monthKey) {
+    const year = monthKey.split('-')[0];
+    incomeItems = getItemsByPeriod(S.payments, 'year', monthKey, null);
+    expenseItems = getItemsByPeriod(S.expenses, 'year', monthKey, null);
+    savingsItems = getItemsByPeriod(S.savings, 'year', monthKey, null);
+    periodLabel = `За год ${year}`;
+  } else {
+    incomeItems = getMonthItems(S.payments, monthKey);
+    expenseItems = getMonthItems(S.expenses, monthKey);
+    savingsItems = getMonthItems(S.savings, monthKey);
+    periodLabel = monthKey ? `За ${getMonthLabel(monthKey)}` : 'По всем месяцам';
+  }
+
+  const totalReceived = incomeItems.reduce((sum, p) => sum + Number(p.amount || 0), 0);
+  const totalExp = expenseItems.reduce((sum, e) => sum + Number(e.amount || 0), 0);
+  const totalSavings = savingsItems.reduce((sum, s) => sum + Number(s.amount || 0), 0);
+
+  return {
+    incomeItems, expenseItems, savingsItems, periodLabel,
+    totalReceived, totalExp, totalSavings,
+    balance: totalReceived - totalExp
+  };
+}
+
+function updateMonthSummary(monthKey) {
+  const summary = getPeriodSummary(monthKey);
+  const { incomeItems, expenseItems, savingsItems, periodLabel, totalReceived, totalExp, totalSavings } = summary;
+
+  el('monthIncome').textContent = fmt(totalReceived);
+  el('monthIncomeCount').textContent = `${incomeItems.length} ${incomeItems.length === 1 ? 'выплата' : incomeItems.length < 5 ? 'выплаты' : 'выплат'}`;
+  el('monthExpenses').textContent = fmt(totalExp);
+  el('monthExpensesCount').textContent = `${expenseItems.length} ${expenseItems.length === 1 ? 'запись' : 'записи'}`;
+  el('monthSavings').textContent = fmt(totalSavings);
+  el('monthSavingsCount').textContent = `${savingsItems.length} ${savingsItems.length === 1 ? 'накопление' : 'накопления'}`;
+  if (el('chartMonthLabel')) el('chartMonthLabel').textContent = periodLabel;
+}
+
+function checkDesktop() {
+  if (window.innerWidth >= 768)
+    document.querySelectorAll('.tab-section').forEach(s => s.classList.add('active'));
+}
+
+/* ═══ TABS ════════════════════════════════════════ */
+function switchTab(name) {
+  if (window.innerWidth >= 768) return;
+  document.querySelectorAll('.tab-section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  el('tab-' + name).classList.add('active');
+  el('nav-' + name).classList.add('active');
+  if (name === 'stats') renderStats();
+  window.scrollTo({ top:0, behavior:'smooth' });
+}
+
+/* ═══ COLLAPSE CALCULATOR ════════════════════════ */
+let calcOpen = false;
+function toggleCalc() {
+  calcOpen = !calcOpen;
+  el('calcBody').className   = 'collapse-body ' + (calcOpen ? 'open' : 'closed');
+  el('calcArrow').className  = 'collapse-arrow ' + (calcOpen ? 'open' : '');
+}
+
+function toggleSection(bodyId, arrowId) {
+  const body = el(bodyId);
+  const arrow = el(arrowId);
+  if (!body || !arrow) return;
+  const isOpen = body.classList.contains('open');
+  body.className = 'collapse-body ' + (isOpen ? 'closed' : 'open');
+  arrow.className = 'collapse-arrow ' + (!isOpen ? 'open' : '');
+}
+
+/* ═══ UTILS ══════════════════════════════════════ */
+function el(id)     { return document.getElementById(id); }
+function todayISO() { return new Date().toISOString().split('T')[0]; }
+function fmt(n)     { return Number(n).toLocaleString('ru-RU',{minimumFractionDigits:0}) + ' ₽'; }
+function fmtDate(d) {
+  if (!d) return '—';
+  const [y,m,day] = d.split('-');
+  return `${day}.${m}.${y}`;
+}
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+function setSyncStatus(state, text) {
+  const status = el('dbSyncStatus');
+  if (!status) return;
+  status.textContent = text;
+  status.classList.toggle('ok', state === 'ok');
+  status.classList.toggle('fail', state === 'fail');
+  status.classList.toggle('pending', state === 'pending');
+  status.classList.toggle('local', state === 'local');
+}
+
+function isOffline() {
+  return navigator && navigator.onLine === false;
+}
+
+function getUserId() {
+  return localStorage.getItem('finflow-user') || 'anon';
+}
+
+function getLocalCacheKey() {
+  return `finflow-cache:v1:${getUserId()}`;
+}
+
+function saveLocalCache() {
+  try {
+    const payload = {
+      v: 1,
+      savedAt: Date.now(),
+      data: {
+        payments: S.payments || [],
+        expenses: S.expenses || [],
+        savings: S.savings || []
+      }
+    };
+    localStorage.setItem(getLocalCacheKey(), JSON.stringify(payload));
+  } catch (_) {}
+}
+
+function loadLocalCache() {
+  try {
+    const raw = localStorage.getItem(getLocalCacheKey());
+    if (!raw) return false;
+    const parsed = JSON.parse(raw);
+    const data = parsed && parsed.data ? parsed.data : null;
+    if (!data) return false;
+    S.payments = Array.isArray(data.payments) ? data.payments : [];
+    S.expenses = mergeExpensesWithStoredTags(Array.isArray(data.expenses) ? data.expenses : []);
+    S.savings = Array.isArray(data.savings) ? data.savings : [];
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+/* ═══ SAVINGS ═════════════════════════════════════
+   Накопленные средства                            */
+async function addSavings() {
+  const label  = el('savLabel').value.trim() || 'Накопление';
+  const amount = parseFloat(el('savAmount').value) || 0;
+  const date   = el('savDate').value;
+
+  if (amount <= 0) { showToast('❗ Укажите сумму накопления'); return; }
+
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const { data, error } = await supabaseClient.from('savings').insert([{ label, amount, date }]).select();
+    if (error) throw error;
+    S.savings.push(data[0]);
+    el('savLabel').value  = '';
+    el('savAmount').value = '';
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('✅ Накопление записано');
+  } catch (e) {
+    console.error('Error adding savings:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка добавления');
+  }
+}
+
+async function deleteSavings(id) {
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const { error } = await supabaseClient.from('savings').delete().eq('id', id);
+    if (error) throw error;
+    S.savings = S.savings.filter(s => s.id !== id);
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('🗑 Накопление удалено');
+  } catch (e) {
+    console.error('Error deleting savings:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка удаления');
+  }
+}
+
+function savRowHTML(s, num) {
+  return `
+    <div class="pay-row">
+      <div class="pay-num">${num}</div>
+      <div class="pay-info">
+        <div class="pay-label-text">${esc(s.label)}</div>
+        <div class="pay-date-text">${fmtDate(s.date)}</div>
+      </div>
+      <div class="pay-amount-text">+${fmt(s.amount)}</div>
+      <div class="pay-actions">
+        <button class="btn-edit" onclick="editSavings(${s.id})" aria-label="Редактировать">✏</button>
+        <button class="btn-del" onclick="deleteSavings(${s.id})" aria-label="Удалить">✕</button>
+      </div>
+    </div>`;
+}
+
+function editSavings(id) {
+  const savings = S.savings.find(s => s.id === id);
+  if (!savings) return;
+
+  editingSavingsId = id;
+  el('editSavLabel').value = savings.label;
+  el('editSavAmount').value = savings.amount;
+  el('editSavDate').value = savings.date;
+  el('editSavingsModal').classList.add('show');
+}
+
+async function saveSavingsEdit() {
+  const label = el('editSavLabel').value.trim() || 'Накопление';
+  const amount = parseFloat(el('editSavAmount').value) || 0;
+  const date = el('editSavDate').value;
+
+  if (amount <= 0) {
+    showToast('❗ Укажите сумму накопления');
+    return;
+  }
+
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const { error } = await supabaseClient
+      .from('savings')
+      .update({ label, amount, date })
+      .eq('id', editingSavingsId);
+    if (error) throw error;
+
+    const savings = S.savings.find(s => s.id === editingSavingsId);
+    if (savings) {
+      savings.label = label;
+      savings.amount = amount;
+      savings.date = date;
+    }
+
+    closeModal('editSavingsModal');
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('✅ Накопление обновлено');
+  } catch (e) {
+    console.error('Error updating savings:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка обновления');
+  }
+}
+
+/* ═══ PAYMENTS ════════════════════════════════════
+   Журнал ручных выплат                           */
+async function addPayment() {
+  const label  = el('payLabel').value.trim() || 'Выплата';
+  const amount = parseFloat(el('payAmount').value) || 0;
+  const date   = el('payDate').value;
+
+  if (amount <= 0) { showToast('❗ Укажите сумму выплаты'); return; }
+
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const { data, error } = await supabaseClient.from('payments').insert([{ label, amount, date }]).select();
+    if (error) throw error;
+    S.payments.push(data[0]);
+    el('payLabel').value  = '';
+    el('payAmount').value = '';
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('✅ Выплата записана');
+  } catch (e) {
+    console.error('Error adding payment:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка добавления');
+  }
+}
+
+async function deletePayment(id) {
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const { error } = await supabaseClient.from('payments').delete().eq('id', id);
+    if (error) throw error;
+    S.payments = S.payments.filter(p => p.id !== id);
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('🗑 Выплата удалена');
+  } catch (e) {
+    console.error('Error deleting payment:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка удаления');
+  }
+}
+
+function payRowHTML(p, num) {
+  return `
+    <div class="pay-row">
+      <div class="pay-num">${num}</div>
+      <div class="pay-info">
+        <div class="pay-label-text">${esc(p.label)}</div>
+        <div class="pay-date-text">${fmtDate(p.date)}</div>
+      </div>
+      <div class="pay-amount-text">+${fmt(p.amount)}</div>
+      <div class="pay-actions">
+        <button class="btn-edit" onclick="editPayment(${p.id})" aria-label="Редактировать">✏</button>
+        <button class="btn-del" onclick="deletePayment(${p.id})" aria-label="Удалить">✕</button>
+      </div>
+    </div>`;
+}
+
+/* ═══ SALARY CALCULATOR ══════════════════════════ */
+function calculateIncome() {
+  const rate  = parseFloat(el('shiftRate').value)  || 0;
+  const count = parseFloat(el('shiftCount').value) || 0;
+  const days  = parseFloat(el('workDays').value)   || 22;
+  const bonus = parseFloat(el('bonus').value)      || 0;
+
+  const salary = rate * count;
+  const total  = salary + bonus;
+  const tax    = total * 0.13;
+  const net    = total - tax;
+  S.plannedIncome = net;
+  S.avgDay = days > 0 ? net / days : 0;
+  S._rate=rate; S._count=count; S._days=days; S._bonus=bonus; S._tax=tax; S._net=net;
+
+  showIncomeResult();
+  refresh();
+  showToast('✅ План рассчитан');
+}
+
+function showIncomeResult() {
+  el('incomeResult').style.display = 'block';
+  el('rSalary').textContent = fmt((S._rate||0) * (S._count||0));
+  el('rBonus').textContent  = fmt(S._bonus || 0);
+  el('rTotal').textContent  = fmt((S._rate||0) * (S._count||0) + (S._bonus || 0));
+  el('rTax').textContent    = fmt(S._tax || 0);
+  el('rNet').textContent    = fmt(S._net || 0);
+  el('rDay').textContent    = fmt(S.avgDay);
+}
+
+/* ═══ EXPENSES ════════════════════════════════════ */
+async function addExpense() {
+  const name   = el('expName').value.trim();
+  const cat    = el('expCat').value;
+  const amount = parseFloat(el('expAmount').value) || 0;
+  const date   = el('expDate').value;
+  const tags = parseTagsInput(el('expTags').value.trim());
+
+  if (!name)      { showToast('❗ Введите название'); return; }
+  if (amount <= 0){ showToast('❗ Укажите сумму');    return; }
+
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const includeTags = canSyncExpenseTags();
+    const { data, error } = await insertExpense(expenseRowForDb({ name, cat, amount, date, tags }, includeTags));
+    if (error) throw error;
+    const saved = { ...data[0], tags: parseExpenseTags(data[0].tags) };
+    if (!includeTags && tags.length) saved.tags = tags;
+    persistExpenseTags(saved.id, saved.tags);
+    S.expenses.push(saved);
+    el('expName').value   = '';
+    el('expAmount').value = '';
+    el('expTags').value   = '';
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('✅ Расход добавлен');
+  } catch (e) {
+    console.error('Error adding expense:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка добавления');
+  }
+}
+
+async function deleteExpense(id) {
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const { error } = await supabaseClient.from('expenses').delete().eq('id', id);
+    if (error) throw error;
+    S.expenses = S.expenses.filter(e => e.id !== id);
+    persistExpenseTags(id, []);
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('🗑 Удалено');
+  } catch (e) {
+    console.error('Error deleting expense:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка удаления');
+  }
+}
+
+function expRowHTML(e, withDelete) {
+  const col = CAT_COLORS[e.cat] || '#64748b';
+  const del = withDelete
+    ? `<div class="exp-actions">
+        <button class="btn-edit" onclick="editExpense(${e.id})" aria-label="Редактировать">✏</button>
+        <button class="btn-del" onclick="deleteExpense(${e.id})" aria-label="Удалить">✕</button>
+      </div>`
+    : '';
+  const cssClass = esc(e.cat).replace(/\s+/g, '_');
+  const tagsHtml = e.tags && e.tags.length > 0
+    ? `<div class="tag-list">${e.tags.map(tag => `<span class="tag-chip">#${esc(tag)}</span>`).join('')}</div>`
+    : '';
+  return `
+    <div class="exp-row">
+      <div class="exp-dot" style="background:${col}"></div>
+      <div class="exp-info">
+        <div class="exp-name">${esc(e.name)}</div>
+        <div class="exp-meta">
+          <span class="badge c-${cssClass}">${esc(e.cat)}</span>
+          <span class="exp-date-text">${fmtDate(e.date)}</span>
+        </div>
+        ${tagsHtml}
+      </div>
+      <div class="exp-amount-text">−${fmt(e.amount)}</div>
+      ${del}
+    </div>`;
+}
+
+/* ═══ SEARCH & FILTER ════════════════════════════ */
+function setPeriodFilter(period) {
+  currentPeriodFilter = period;
+  
+  // Обновляем активную кнопку
+  ['Week', 'Month', 'Year'].forEach(p => {
+    const btn = el(`filter${p}`);
+    if (!btn) return;
+    const isActive = period === p.toLowerCase();
+    btn.style.borderColor = isActive ? `var(--${p === 'Month' ? 'blue' : 'border'})` : 'var(--border)';
+    btn.style.color = isActive ? `var(--${p === 'Month' ? 'blue' : 'ink'})` : 'var(--ink)';
+    btn.style.fontWeight = isActive ? '600' : '400';
+  });
+  
+  localStorage.setItem('finflow-period', period);
+  refresh();
+}
+
+function filterExpenses() {
+  const searchInput = el('expSearchInput');
+  if (!searchInput) return;
+  
+  const searchTerm = searchInput.value.toLowerCase();
+  const fList = el('fullList');
+  
+  if (!searchTerm) {
+    // Показываем все расходы
+    const sortedExp = [...S.expenses].sort((a,b) => b.id - a.id);
+    fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
+  } else {
+    // Фильтруем по названию и тегам
+    const filtered = S.expenses.filter(e => {
+      const nameMatch = e.name.toLowerCase().includes(searchTerm);
+      const tagsMatch = e.tags && e.tags.some(tag => tag.toLowerCase().includes(searchTerm));
+      return nameMatch || tagsMatch;
+    });
+    const sorted = [...filtered].sort((a,b) => b.id - a.id);
+    fList.innerHTML = sorted.length > 0 
+      ? sorted.map(e => expRowHTML(e, true)).join('')
+      : '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Расходы не найдены</div></div>';
+  }
+}
+
+function computeCategoryStats() {
+  const map = {};
+  S.expenses.forEach(e => {
+    if (!map[e.cat]) map[e.cat] = { total: 0, count: 0 };
+    map[e.cat].total += Number(e.amount || 0);
+    map[e.cat].count += 1;
+  });
+  return Object.entries(map).map(([cat, data]) => ({
+    cat,
+    total: data.total,
+    count: data.count,
+    avg: data.count ? data.total / data.count : 0
+  })).sort((a, b) => b.total - a.total);
+}
+
+/* ═══ ADVANCED FILTERS ═════════════════════════════ */
+function getAdvancedFilterState() {
+  return {
+    search: (el('filterSearchInput')?.value || '').toLowerCase(),
+    category: el('filterCategory')?.value || '',
+    minAmount: parseFloat(el('filterMinAmount')?.value) || 0,
+    maxAmount: parseFloat(el('filterMaxAmount')?.value) || Infinity,
+    dateFrom: el('filterDateFrom')?.value || '',
+    dateTo: el('filterDateTo')?.value || '',
+    tag: (el('filterTag')?.value || '').toLowerCase()
+  };
+}
+
+function applyAdvancedFilters() {
+  const filter = getAdvancedFilterState();
+  const fList = el('fullList');
+  if (!fList) return;
+
+  let filtered = S.expenses.filter(e => {
+    const nameMatch = !filter.search || e.name.toLowerCase().includes(filter.search);
+    const catMatch = !filter.category || e.cat === filter.category;
+    const amountMatch = e.amount >= filter.minAmount && e.amount <= filter.maxAmount;
+    const tagMatch = !filter.tag || (e.tags && e.tags.some(tag => tag.toLowerCase().includes(filter.tag)));
+    const dateFromMatch = !filter.dateFrom || e.date >= filter.dateFrom;
+    const dateToMatch = !filter.dateTo || e.date <= filter.dateTo;
+    return nameMatch && catMatch && amountMatch && tagMatch && dateFromMatch && dateToMatch;
+  });
+
+  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+  
+  if (sorted.length === 0) {
+    fList.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">По вашему фильтру ничего не найдено</div></div>';
+  } else {
+    fList.innerHTML = sorted.map(e => expRowHTML(e, true)).join('');
+  }
+
+  saveFiltersToSession(filter);
+}
+
+function resetAdvancedFilters() {
+  el('filterSearchInput').value = '';
+  el('filterCategory').value = '';
+  el('filterMinAmount').value = '';
+  el('filterMaxAmount').value = '';
+  el('filterDateFrom').value = '';
+  el('filterDateTo').value = '';
+  el('filterTag').value = '';
+  applyAdvancedFilters();
+  localStorage.removeItem('finflow-active-filter');
+}
+
+function getSavedFilters() {
+  try {
+    const raw = localStorage.getItem(`finflow-saved-filters:${getUserId()}`);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSavedFilters(filters) {
+  try {
+    localStorage.setItem(`finflow-saved-filters:${getUserId()}`, JSON.stringify(filters));
+  } catch (_) {}
+}
+
+function saveCurrentFilter() {
+  const filter = getAdvancedFilterState();
+  const name = prompt('Введите название для сохраненного фильтра:', 'Фильтр 1');
+  if (!name) return;
+
+  const saved = getSavedFilters();
+  saved.push({
+    id: Date.now(),
+    name: name.trim(),
+    filter: filter
+  });
+  saveSavedFilters(saved);
+  renderSavedFilters();
+  showToast('✅ Фильтр сохранён');
+}
+
+function loadSavedFilter(filterId) {
+  const saved = getSavedFilters();
+  const item = saved.find(f => f.id === filterId);
+  if (!item) return;
+
+  const f = item.filter;
+  if (el('filterSearchInput')) el('filterSearchInput').value = f.search || '';
+  if (el('filterCategory')) el('filterCategory').value = f.category || '';
+  if (el('filterMinAmount')) el('filterMinAmount').value = f.minAmount || '';
+  if (el('filterMaxAmount')) el('filterMaxAmount').value = f.maxAmount === Infinity ? '' : f.maxAmount;
+  if (el('filterDateFrom')) el('filterDateFrom').value = f.dateFrom || '';
+  if (el('filterDateTo')) el('filterDateTo').value = f.dateTo || '';
+  if (el('filterTag')) el('filterTag').value = f.tag || '';
+
+  applyAdvancedFilters();
+  showToast(`✅ Загружен фильтр "${item.name}"`);
+}
+
+function deleteSavedFilter(filterId) {
+  if (!confirm('Удалить сохранённый фильтр?')) return;
+  const saved = getSavedFilters();
+  saveSavedFilters(saved.filter(f => f.id !== filterId));
+  renderSavedFilters();
+  showToast('🗑 Фильтр удалён');
+}
+
+function renderSavedFilters() {
+  const container = el('savedFiltersContainer');
+  if (!container) return;
+
+  const saved = getSavedFilters();
+  if (saved.length === 0) {
+    container.innerHTML = '';
+    return;
+  }
+
+  container.innerHTML = `
+    <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);">
+      <div style="font-size:.7rem;font-weight:700;color:var(--ink-2);text-transform:uppercase;margin-bottom:8px;">💾 Сохранённые фильтры</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        ${saved.map(item => `
+          <button class="btn" style="padding:6px 12px;font-size:.8rem;background:var(--blue-lt);color:var(--blue);border:1px solid var(--blue);border-radius:6px;cursor:pointer;display:flex;gap:6px;align-items:center;"
+            onclick="loadSavedFilter(${item.id})">
+            ⭐ ${esc(item.name)}
+            <span onclick="event.stopPropagation();deleteSavedFilter(${item.id})" style="cursor:pointer;font-weight:bold;">✕</span>
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function saveFiltersToSession(filter) {
+  try {
+    localStorage.setItem('finflow-active-filter', JSON.stringify(filter));
+  } catch (_) {}
+}
+
+function loadActiveFilter() {
+  try {
+    const raw = localStorage.getItem('finflow-active-filter');
+    const filter = raw ? JSON.parse(raw) : null;
+    if (!filter) return;
+    if (el('filterSearchInput')) el('filterSearchInput').value = filter.search || '';
+    if (el('filterCategory')) el('filterCategory').value = filter.category || '';
+    if (el('filterMinAmount')) el('filterMinAmount').value = filter.minAmount || '';
+    if (el('filterMaxAmount')) el('filterMaxAmount').value = filter.maxAmount === Infinity ? '' : filter.maxAmount;
+    if (el('filterDateFrom')) el('filterDateFrom').value = filter.dateFrom || '';
+    if (el('filterDateTo')) el('filterDateTo').value = filter.dateTo || '';
+    if (el('filterTag')) el('filterTag').value = filter.tag || '';
+  } catch (_) {}
+}
+
+function getMonthlyTrendData(months = 6) {
+  const today = new Date();
+  const trend = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const total = S.expenses
+      .filter(e => getMonthKey(e.date) === key)
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    trend.push({ key, label: getMonthLabel(key), total });
+  }
+  return trend;
+}
+
+/* ═══ COMPARISON CHART (месяц к месяцу, год к году) ═════ */
+function getMonthlyComparisonData(months = 12) {
+  const today = new Date();
+  const data = {};
+
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    const income = S.payments
+      .filter(p => getMonthKey(p.date) === key)
+      .reduce((sum, p) => sum + Number(p.amount || 0), 0);
+    const expenses = S.expenses
+      .filter(e => getMonthKey(e.date) === key)
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0);
+    data[key] = { income, expenses, balance: income - expenses, label: getMonthLabel(key) };
+  }
+
+  return Object.entries(data).map(([key, val]) => ({ ...val, key }));
+}
+
+function renderComparisonChart(comparisonData) {
+  const canvas = el('statsComparisonChart');
+  const empty = el('statsComparisonEmpty');
+  if (!canvas) return;
+
+  if (comparisonData.length === 0) {
+    canvas.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    if (comparisonChart) { comparisonChart.destroy(); comparisonChart = null; }
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+  canvas.style.display = 'block';
+
+  const labels = comparisonData.map(item => item.label);
+  const incomeData = comparisonData.map(item => item.income);
+  const expenseData = comparisonData.map(item => item.expenses);
+  const themeColors = getChartThemeColors();
+
+  if (comparisonChart) comparisonChart.destroy();
+
+  comparisonChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Доходы',
+          data: incomeData,
+          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#10b981',
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#10b981',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Расходы',
+          data: expenseData,
+          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#dc2626',
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#dc2626',
+          borderWidth: 1,
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            font: { family: "'Manrope',sans-serif", size: 11, weight: '600' },
+            padding: 12,
+            color: themeColors.text
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.dataset.label}: ${fmt(ctx.raw)}`
+          },
+          backgroundColor: themeColors.tooltipBg,
+          titleColor: themeColors.tooltipText,
+          bodyColor: themeColors.tooltipText,
+          titleFont: { family: "'Manrope',sans-serif", weight: '700' },
+          bodyFont: { family: "'Manrope',sans-serif" }
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: themeColors.text, font: { family: "'Manrope',sans-serif", size: 10 } },
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            color: themeColors.text,
+            font: { family: "'Manrope',sans-serif", size: 11 },
+            callback: value => fmt(value)
+          },
+          grid: { color: themeColors.grid }
+        }
+      }
+    }
+  });
+}
+
+/* ═══ BALANCE CHART (график баланса во времени) ═════ */
+function renderBalanceChart(comparisonData) {
+  const canvas = el('statsBalanceChart');
+  const empty = el('statsBalanceEmpty');
+  if (!canvas) return;
+
+  if (comparisonData.length === 0) {
+    canvas.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    if (balanceChart) { balanceChart.destroy(); balanceChart = null; }
+    return;
+  }
+
+  if (empty) empty.style.display = 'none';
+  canvas.style.display = 'block';
+
+  const labels = comparisonData.map(item => item.label);
+  const balanceData = comparisonData.map(item => item.balance);
+  const themeColors = getChartThemeColors();
+  const greenColor = getComputedStyle(document.documentElement).getPropertyValue('--green').trim() || '#10b981';
+  const redColor = getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#dc2626';
+
+  if (balanceChart) balanceChart.destroy();
+
+  balanceChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Баланс (Доходы − Расходы)',
+          data: balanceData,
+          borderColor: greenColor,
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: balanceData.map(val => val >= 0 ? greenColor : redColor),
+          pointBorderColor: themeColors.border,
+          pointBorderWidth: 2,
+          pointHoverRadius: 7
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            font: { family: "'Manrope',sans-serif", size: 11, weight: '600' },
+            padding: 12,
+            color: themeColors.text
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => {
+              const val = ctx.raw;
+              const emoji = val >= 0 ? '🟢' : '🔴';
+              return ` ${emoji} Баланс: ${fmt(Math.abs(val))}`;
+            }
+          },
+          backgroundColor: themeColors.tooltipBg,
+          titleColor: themeColors.tooltipText,
+          bodyColor: themeColors.tooltipText,
+          titleFont: { family: "'Manrope',sans-serif", weight: '700' },
+          bodyFont: { family: "'Manrope',sans-serif" },
+          padding: 12,
+          cornerRadius: 8
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: themeColors.text, font: { family: "'Manrope',sans-serif", size: 10 } },
+          grid: { display: false }
+        },
+        y: {
+          ticks: {
+            color: themeColors.text,
+            font: { family: "'Manrope',sans-serif", size: 11 },
+            callback: value => fmt(value)
+          },
+          grid: { color: themeColors.grid }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      }
+    }
+  });
+}
+
+function renderStats() {
+  const categoryStats = computeCategoryStats();
+  const totalCount = categoryStats.reduce((sum, item) => sum + item.count, 0);
+  const totalAmount = categoryStats.reduce((sum, item) => sum + item.total, 0);
+  const averageExpense = totalCount ? totalAmount / totalCount : 0;
+  const topCategory = categoryStats[0] || null;
+
+  if (el('statsAvgExpense')) el('statsAvgExpense').textContent = fmt(averageExpense);
+  if (el('statsAvgCount')) el('statsAvgCount').textContent = totalCount ? `${totalCount} записей` : 'нет данных';
+  if (el('statsTopCategory')) el('statsTopCategory').textContent = topCategory ? topCategory.cat : '—';
+  if (el('statsTopCategorySum')) el('statsTopCategorySum').textContent = topCategory ? `Всего ${fmt(topCategory.total)}` : '—';
+  if (el('statsCategoriesCount')) el('statsCategoriesCount').textContent = categoryStats.length;
+
+  renderStatsCategoryChart(categoryStats);
+  renderStatsTrendChart(getMonthlyTrendData(6));
+  renderStatsTable(categoryStats);
+
+  // New charts
+  const comparisonData = getMonthlyComparisonData(12);
+  renderComparisonChart(comparisonData);
+  renderBalanceChart(comparisonData);
+}
+
+
+
+function renderStatsCategoryChart(categoryStats) {
+  const canvas = el('statsCatChart');
+  const empty = el('statsCatEmpty');
+  if (!canvas) return;
+  if (categoryStats.length === 0) {
+    canvas.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    if (statsChart) { statsChart.destroy(); statsChart = null; }
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  canvas.style.display = 'block';
+  const labels = categoryStats.map(item => item.cat);
+  const data = categoryStats.map(item => item.avg);
+  const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
+  const themeColors = getChartThemeColors();
+  if (statsChart) statsChart.destroy();
+  statsChart = new Chart(canvas, {
+    type: 'bar',
+    data: { labels, datasets:[{ label:'Средний расход', data, backgroundColor: colors, borderColor: colors, borderWidth: 1, borderRadius: 6 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, plugins: {
+        legend: { display:false },
+        tooltip: { 
+          callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` },
+          backgroundColor: themeColors.tooltipBg,
+          titleColor: themeColors.tooltipText,
+          bodyColor: themeColors.tooltipText,
+          titleFont: { family:"'Manrope',sans-serif", weight:'700' },
+          bodyFont: { family:"'Manrope',sans-serif" }
+        }
+      },
+      scales: {
+        x: { 
+          ticks: { color: themeColors.text, font: { family:"'Manrope',sans-serif", size:11 } },
+          grid: { display: false }
+        },
+        y: { 
+          beginAtZero: true,
+          ticks: { 
+            color: themeColors.text, 
+            font: { family:"'Manrope',sans-serif", size:11 },
+            callback: value => fmt(value)
+          },
+          grid: { color: themeColors.grid }
+        }
+      }
+    }
+  });
+}
+
+function renderStatsTrendChart(trendData) {
+  const canvas = el('statsTrendChart');
+  const empty = el('statsTrendEmpty');
+  if (!canvas) return;
+  if (trendData.length === 0) {
+    canvas.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+    if (trendChart) { trendChart.destroy(); trendChart = null; }
+    return;
+  }
+  if (empty) empty.style.display = 'none';
+  canvas.style.display = 'block';
+  const labels = trendData.map(item => item.label);
+  const data = trendData.map(item => item.total);
+  const color = getComputedStyle(document.documentElement).getPropertyValue('--blue').trim();
+  const themeColors = getChartThemeColors();
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(canvas, {
+    type: 'line',
+    data: { labels, datasets:[{ 
+      label:'Расходы', 
+      data, 
+      borderColor: color, 
+      backgroundColor: 'rgba(59,130,246,.15)', 
+      fill:true, 
+      tension:0.4, 
+      pointRadius:4,
+      pointBackgroundColor: color,
+      pointBorderColor: themeColors.border,
+      pointBorderWidth: 2,
+      pointHoverRadius: 6
+    }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, plugins: {
+        legend: { display:false },
+        tooltip: { 
+          callbacks: { 
+            label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}`,
+            title: ctx => ` ${ctx[0].label}`
+          },
+          backgroundColor: themeColors.tooltipBg,
+          titleColor: themeColors.tooltipText,
+          bodyColor: themeColors.tooltipText,
+          titleFont: { family:"'Manrope',sans-serif", weight:'700' },
+          bodyFont: { family:"'Manrope',sans-serif" },
+          padding: 12,
+          cornerRadius: 8,
+          displayColors: false
+        }
+      },
+      scales: {
+        x: { 
+          ticks: { 
+            color: themeColors.text, 
+            font: { family:"'Manrope',sans-serif", size:11 } 
+          },
+          grid: { display: false }
+        },
+        y: { 
+          beginAtZero: true,
+          ticks: { 
+            color: themeColors.text, 
+            font: { family:"'Manrope',sans-serif", size:11 },
+            callback: value => fmt(value)
+          },
+          grid: { color: themeColors.grid }
+        }
+      },
+      interaction: {
+        intersect: false,
+        mode: 'index'
+      }
+    }
+  });
+}
+
+function renderStatsTable(categoryStats) {
+  const table = el('statsTable');
+  if (!table) return;
+  if (categoryStats.length === 0) {
+    table.innerHTML = '<div class="empty-state"><div class="empty-icon">📌</div><div class="empty-text">Нет расходов для построения таблицы</div></div>';
+    return;
+  }
+  
+  const maxTotal = categoryStats[0].total || 1;
+  
+  table.innerHTML = categoryStats.map((item, index) => {
+    const percentage = maxTotal > 0 ? (item.total / maxTotal * 100) : 0;
+    const col = CAT_COLORS[item.cat] || '#64748b';
+    const cssClass = esc(item.cat).replace(/\s+/g, '_');
+    
+    return `
+    <div class="stats-cat-row" style="padding:14px 0;border-bottom:1px solid var(--border);">
+      <div class="stats-cat-header" style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div class="stats-cat-num" style="width:24px;height:24px;border-radius:50%;background:${col};color:#fff;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;">${index + 1}</div>
+        <div class="stats-cat-name" style="flex:1;min-width:0;">
+          <span class="badge c-${cssClass}" style="font-size:.65rem;padding:3px 8px;">${esc(item.cat)}</span>
+        </div>
+        <div class="stats-cat-total" style="font-size:1rem;font-weight:700;color:var(--ink);flex-shrink:0;">${fmt(item.total)}</div>
+      </div>
+      <div class="stats-cat-progress-wrap" style="margin-bottom:8px;">
+        <div class="stats-cat-progress-bg" style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+          <div class="stats-cat-progress-bar" style="height:100%;background:${col};border-radius:3px;transition:width .8s ease;width:${percentage.toFixed(1)}%;"></div>
+        </div>
+      </div>
+      <div class="stats-cat-meta" style="display:flex;gap:16px;flex-wrap:wrap;">
+        <span class="stats-cat-stat" style="font-size:.7rem;color:var(--ink-3);">
+          <span style="color:var(--ink-2);font-weight:600;">Средний:</span> ${fmt(item.avg)}
+        </span>
+        <span class="stats-cat-stat" style="font-size:.7rem;color:var(--ink-3);">
+          <span style="color:var(--ink-2);font-weight:600;">Записей:</span> ${item.count}
+        </span>
+        <span class="stats-cat-stat" style="font-size:.7rem;color:var(--ink-3);">
+          <span style="color:var(--ink-2);font-weight:600;">Доля:</span> ${(item.total / (categoryStats.reduce((s, i) => s + i.total, 0)) * 100).toFixed(1)}%
+        </span>
+      </div>
+    </div>
+  `}).join('');
+}
+
+/* ═══ REFRESH (render all) ════════════════════════ */
+function refresh() {
+  const monthKey       = currentMonthKey || getMonthKey(todayISO());
+  const totalReceived = S.payments.reduce((s,p) => s + p.amount, 0);
+  const totalExp      = S.expenses.reduce((s,e) => s + e.amount, 0);
+  const totalSavings  = S.savings.reduce((s,sv) => s + sv.amount, 0);
+  const balance       = totalReceived - totalExp;
+  const isPos         = balance >= 0;
+  const savingsGoal   = 200000;
+  const savingsPct    = Math.min((totalSavings / savingsGoal) * 100, 100);
+
+  buildMonthOptions();
+  updateMonthSummary(monthKey);
+
+  // Load saved filters and render them
+  renderSavedFilters();
+
+  /* KPI */
+  el('kpiIncome').textContent   = fmt(totalReceived);
+  el('kpiPayCount').textContent = S.payments.length + ' ' +
+    (S.payments.length === 1 ? 'выплата' : S.payments.length < 5 ? 'выплаты' : 'выплат');
+  el('kpiExpenses').textContent = fmt(totalExp);
+  el('kpiExpCount').textContent = S.expenses.length + ' записей';
+  el('kpiSavings').textContent = fmt(totalSavings);
+  el('savingProgressBar').style.width = savingsPct + '%';
+  el('savingProgressLabel').textContent = `Цель: ${fmt(savingsGoal)} — ${Math.round(savingsPct)}%`;
+
+  const bEl = el('kpiBalance');
+  bEl.textContent = fmt(Math.abs(balance));
+  bEl.className   = 'kpi-val ' + (isPos ? 'g' : 'r');
+  el('kpiStatus').textContent = totalReceived === 0
+    ? '— запишите доход' : isPos ? '🟢 Всё хорошо' : '🔴 Перерасход';
+
+  // Balance bar (% of income spent)
+  const bpct = totalReceived > 0 ? Math.min(totalExp / totalReceived * 100, 100) : 0;
+  const bbar = el('kpiProgress');
+  bbar.style.width      = bpct + '%';
+  bbar.style.background = bpct > 90 ? '#dc2626' : bpct > 70 ? '#d97706' : '#10b981';
+
+  // Plan progress bar
+  const ppw = el('planProgressWrap');
+  if (S.plannedIncome > 0) {
+    ppw.style.display = 'block';
+    const ppct = Math.min(totalReceived / S.plannedIncome * 100, 100);
+    el('planBar').style.width = ppct + '%';
+    el('planBar').style.background = ppct >= 100 ? '#059669' : '#10b981';
+    el('planLabel').textContent = `${Math.round(ppct)}% от плана (${fmt(S.plannedIncome)})`;
+  } else {
+    ppw.style.display = 'none';
+  }
+
+  /* PAYMENTS LIST */
+  const sortedPay = [...S.payments].sort((a,b) => b.id - a.id);
+  const chrono    = [...S.payments].sort((a,b) => a.id - b.id);
+  const idxMap    = {}; chrono.forEach((p,i) => { idxMap[p.id] = i+1; });
+
+  const pList  = el('payList');
+  const pEmpty = el('payEmpty');
+  const pTotal = el('payTotalRow');
+  if (sortedPay.length === 0) {
+    pList.innerHTML = ''; pEmpty.style.display = 'block'; pTotal.style.display = 'none';
+  } else {
+    pEmpty.style.display = 'none';
+    pList.innerHTML = sortedPay.map(p => payRowHTML(p, idxMap[p.id])).join('');
+    pTotal.style.display = 'flex';
+    el('payTotalAmt').textContent = fmt(totalReceived);
+  }
+
+  /* SAVINGS */
+  const sortedSav = [...S.savings].sort((a,b) => b.id - a.id);
+  const chrono2 = [...S.savings].sort((a,b) => a.id - b.id);
+  const idxMap2 = {}; chrono2.forEach((s,i) => { idxMap2[s.id] = i+1; });
+
+  const sList = el('savList');
+  const sEmpty = el('savEmpty');
+  const sTotal = el('savTotalRow');
+  if (sortedSav.length === 0) {
+    sList.innerHTML = ''; sEmpty.style.display = 'block'; sTotal.style.display = 'none';
+  } else {
+    sEmpty.style.display = 'none';
+    sList.innerHTML = sortedSav.map(s => savRowHTML(s, idxMap2[s.id])).join('');
+    sTotal.style.display = 'flex';
+    el('savTotalAmt').textContent = fmt(totalSavings);
+  }
+
+  /* RECENT EXPENSES (overview, last 5) */
+  const sortedExp = [...S.expenses].sort((a,b) => b.id - a.id);
+  const rList     = el('recentList');
+  const rEmpty    = el('recentEmpty');
+  const recent5   = sortedExp.slice(0,5);
+  if (recent5.length === 0) {
+    rList.innerHTML = ''; rEmpty.style.display = 'block';
+  } else {
+    rEmpty.style.display = 'none';
+    rList.innerHTML = recent5.map(e => expRowHTML(e, false)).join('');
+  }
+
+  /* FULL EXPENSES (expenses tab) */
+  const fList  = el('fullList');
+  const fEmpty = el('fullEmpty');
+  if (sortedExp.length === 0) {
+    fList.innerHTML = ''; fEmpty.style.display = 'block';
+  } else {
+    fEmpty.style.display = 'none';
+    // Применяем фильтрацию поиска
+    const searchInput = el('expSearchInput');
+    if (searchInput && searchInput.value.trim()) {
+      filterExpenses();
+    } else {
+      fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
+    }
+  }
+
+  // Restart animations for newly added elements
+  setTimeout(() => {
+    document.querySelectorAll('.kpi-card, .card, .pay-row, .exp-row').forEach(el => {
+      el.style.animation = 'none';
+      el.offsetHeight; // Trigger reflow
+      el.style.animation = '';
+    });
+  }, 10);
+
+  renderChart(totalExp, monthKey);
+  renderStats();
+}
+
+/* ═══ CHART ═══════════════════════════════════════ */
+let chart = null;
+let statsChart = null;
+let trendChart = null;
+let comparisonChart = null;
+let balanceChart = null;
+function renderChart(totalExp, monthKey) {
+  const canvas = el('chartCanvas');
+  const empty  = el('chartEmpty');
+  
+  let filteredExpenses;
+  if (currentPeriodFilter === 'week' && monthKey) {
+    filteredExpenses = getItemsByPeriod(S.expenses, 'week', monthKey, monthKey);
+  } else if (currentPeriodFilter === 'year' && monthKey) {
+    filteredExpenses = getItemsByPeriod(S.expenses, 'year', monthKey, null);
+  } else {
+    filteredExpenses = monthKey ? getMonthItems(S.expenses, monthKey) : S.expenses;
+  }
+  
+  if (filteredExpenses.length === 0) {
+    canvas.style.display = 'none'; empty.style.display = 'block';
+    if (chart) { chart.destroy(); chart = null; }
+    return;
+  }
+  canvas.style.display = 'block'; empty.style.display = 'none';
+  const agg = {};
+  filteredExpenses.forEach(e => { agg[e.cat] = (agg[e.cat]||0) + e.amount; });
+  const labels = Object.keys(agg);
+  const data   = Object.values(agg);
+  const colors = labels.map(l => CAT_COLORS[l] || '#64748b');
+  if (chart) chart.destroy();
+  const themeColors = getChartThemeColors();
+  const totalForTooltip = filteredExpenses.reduce((sum, e) => sum + e.amount, 0) || 1;
+  chart = new Chart(canvas, {
+    type: 'doughnut',
+    data: { labels, datasets:[{ data, backgroundColor:colors, borderWidth:4, borderColor:themeColors.border, hoverOffset:10 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false, cutout:'68%',
+      plugins: {
+        legend: {
+          position:'right',
+          labels: {
+            font: { family:"'Manrope',sans-serif", size:11, weight:'600' },
+            padding:12,
+            usePointStyle:true,
+            pointStyleWidth:8,
+            color: themeColors.text
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => `  ${ctx.label}: ${fmt(ctx.raw)} (${Math.round(ctx.raw/totalForTooltip*100)}%)`
+          },
+          titleFont: { family:"'Manrope',sans-serif", weight:'700' },
+          bodyFont: { family:"'Manrope',sans-serif" },
+          backgroundColor: themeColors.tooltipBg,
+          titleColor: themeColors.tooltipText,
+          bodyColor: themeColors.tooltipText
+        }
+      }
+    }
+  });
+}
+
+/* ═══ RESET ═══════════════════════════════════════ */
+async function resetAll() {
+  if (!confirm('Сбросить все данные?\nЭто действие нельзя отменить.')) return;
+  let password = prompt('Введите пароль для сброса:');
+  if (password !== '424331') {
+    alert('Неверный пароль');
+    return;
+  }
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    await supabaseClient.from('payments').delete().neq('id', 0); // Delete all
+    await supabaseClient.from('expenses').delete().neq('id', 0);
+    await supabaseClient.from('savings').delete().neq('id', 0);
+    S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[], savings:[] };
+    saveExpenseTagsMap({});
+    ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
+    el('workDays').value = '22';
+    el('incomeResult').style.display = 'none';
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('🗑 Данные сброшены');
+  } catch (e) {
+    console.error('Error resetting data:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка сброса');
+  }
+}
+
+/* ═══ EDITING ═════════════════════════════════════ */
+let editingPaymentId = null;
+let editingExpenseId = null;
+let editingSavingsId = null;
+
+function closeModal(modalId) {
+  el(modalId).classList.remove('show');
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', (e) => {
+  if (e.target.classList.contains('modal')) {
+    e.target.classList.remove('show');
+  }
+});
+
+// Close modal on Escape key
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal.show').forEach(modal => {
+      modal.classList.remove('show');
+    });
+  }
+});
+
+function editPayment(id) {
+  const payment = S.payments.find(p => p.id === id);
+  if (!payment) return;
+
+  editingPaymentId = id;
+  el('editPayLabel').value = payment.label;
+  el('editPayAmount').value = payment.amount;
+  el('editPayDate').value = payment.date;
+  el('editPaymentModal').classList.add('show');
+}
+
+async function savePaymentEdit() {
+  const label = el('editPayLabel').value.trim() || 'Выплата';
+  const amount = parseFloat(el('editPayAmount').value) || 0;
+  const date = el('editPayDate').value;
+
+  if (amount <= 0) {
+    showToast('❗ Укажите сумму выплаты');
+    return;
+  }
+
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const { error } = await supabaseClient
+      .from('payments')
+      .update({ label, amount, date })
+      .eq('id', editingPaymentId);
+    if (error) throw error;
+
+    const payment = S.payments.find(p => p.id === editingPaymentId);
+    if (payment) {
+      payment.label = label;
+      payment.amount = amount;
+      payment.date = date;
+    }
+
+    closeModal('editPaymentModal');
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('✅ Выплата обновлена');
+  } catch (e) {
+    console.error('Error updating payment:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка обновления');
+  }
+}
+
+function editExpense(id) {
+  const expense = S.expenses.find(e => e.id === id);
+  if (!expense) return;
+
+  editingExpenseId = id;
+  el('editExpName').value = expense.name;
+  el('editExpCat').value = expense.cat;
+  el('editExpAmount').value = expense.amount;
+  el('editExpDate').value = expense.date;
+  el('editExpTags').value = expense.tags ? expense.tags.join(', ') : '';
+  el('editExpenseModal').classList.add('show');
+}
+
+async function saveExpenseEdit() {
+  const name = el('editExpName').value.trim();
+  const cat = el('editExpCat').value;
+  const amount = parseFloat(el('editExpAmount').value) || 0;
+  const date = el('editExpDate').value;
+  const tags = parseTagsInput(el('editExpTags').value.trim());
+
+  if (!name) {
+    showToast('❗ Введите название');
+    return;
+  }
+  if (amount <= 0) {
+    showToast('❗ Укажите сумму');
+    return;
+  }
+
+  try {
+    if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
+    const includeTags = canSyncExpenseTags();
+    const updateResult = await updateExpense(editingExpenseId, expenseRowForDb({ name, cat, amount, date, tags }, includeTags));
+    if (updateResult.error) throw updateResult.error;
+
+    const expense = S.expenses.find(e => e.id === editingExpenseId);
+    if (expense) {
+      expense.name = name;
+      expense.cat = cat;
+      expense.amount = amount;
+      expense.date = date;
+      expense.tags = tags;
+      persistExpenseTags(editingExpenseId, tags);
+    }
+
+    closeModal('editExpenseModal');
+    refresh();
+    setSyncStatus('ok', 'Данные синхронизированы');
+    saveLocalCache();
+    showToast('✅ Расход обновлен');
+  } catch (e) {
+    console.error('Error updating expense:', e);
+    setSyncStatus('fail', 'Ошибка синхронизации');
+    showToast('❌ Ошибка обновления');
+  }
+}
+
+/* ═══ TOAST ═══════════════════════════════════════ */
+let toastTimer = null;
+function showToast(msg) {
+  const t = el('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+/* ═══ SERVICE WORKER (offline) ════════════════════ */
+if ('serviceWorker' in navigator) {
+  const sw = `
+    const CACHE='finflow-v3';
+    self.addEventListener('install', e=>e.waitUntil(
+      caches.open(CACHE).then(c=>c.addAll([self.registration.scope])).catch(()=>{})
+    ));
+    self.addEventListener('fetch', e=>e.respondWith(
+      caches.match(e.request).then(r=>r||fetch(e.request))
+    ));
+  `;
+  navigator.serviceWorker.register(
+    URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))
+  ).catch(()=>{});
+}
+</script>
+
+<!-- MODALS -->
+<div class="modal" id="editPaymentModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Редактировать доход</div>
+      <button class="modal-close" onclick="closeModal('editPaymentModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Название</label>
+          <input type="text" id="editPayLabel" placeholder="Выплата" />
+        </div>
+        <div class="field">
+          <label>Сумма (₽)</label>
+          <input type="number" id="editPayAmount" placeholder="0" min="0" inputmode="decimal" />
+        </div>
+        <div class="field span2">
+          <label>Дата</label>
+          <input type="date" id="editPayDate" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editPaymentModal')">Отмена</button>
+      <button class="btn btn-green" onclick="savePaymentEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="editExpenseModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Редактировать расход</div>
+      <button class="modal-close" onclick="closeModal('editExpenseModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Название</label>
+          <input type="text" id="editExpName" placeholder="Расход" />
+        </div>
+        <div class="field">
+          <label>Категория</label>
+          <select id="editExpCat">
+            <option>Еда</option>
+            <option>Обязательные расходы</option>
+            <option>Не обязательные расходы</option>
+            <option>Транспорт</option>
+            <option>Мобильная связь</option>
+            <option>Домашний интернет</option>
+            <option>VPN</option>
+            <option>Подписки</option>
+            <option>Другое</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Сумма (₽)</label>
+          <input type="number" id="editExpAmount" placeholder="0" min="0" inputmode="decimal" />
+        </div>
+        <div class="field span2">
+          <label>Дата</label>
+          <input type="date" id="editExpDate" />
+        </div>
+        <div class="field span2">
+          <label>Теги (через запятую)</label>
+          <input type="text" id="editExpTags" placeholder="работа, срочно, онлайн…" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editExpenseModal')">Отмена</button>
+      <button class="btn btn-green" onclick="saveExpenseEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="editSavingsModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Редактировать накопление</div>
+      <button class="modal-close" onclick="closeModal('editSavingsModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Название</label>
+          <input type="text" id="editSavLabel" placeholder="Накопление" />
+        </div>
+        <div class="field">
+          <label>Сумма (₽)</label>
+          <input type="number" id="editSavAmount" placeholder="0" min="0" inputmode="decimal" />
+        </div>
+        <div class="field span2">
+          <label>Дата</label>
+          <input type="date" id="editSavDate" />
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('editSavingsModal')">Отмена</button>
+      <button class="btn btn-green" onclick="saveSavingsEdit()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══ EXPORT FUNCTIONS ═══════════════════════════ */
+function exportPaymentsCSV() {
+  const filtered = getMonthItems(S.payments, currentMonthKey);
+  if (filtered.length === 0) {
+    alert('Нет данных для экспорта за выбранный период');
+    return;
+  }
+  const data = filtered.map(p => ({
+    'ID': p.id,
+    'Метка': p.label || 'Без метки',
+    'Сумма': p.amount,
+    'Дата': fmtDate(p.date).replace(/\./g, '/'),
+    'Время': new Date(p.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
+  }));
+  const suffix = currentMonthKey ? currentMonthKey.replace('-', '_') : 'все';
+  downloadCSV(data, `доходы_${suffix}.csv`);
+}
+
+function exportExpensesCSV() {
+  const filtered = getMonthItems(S.expenses, currentMonthKey);
+  if (filtered.length === 0) {
+    alert('Нет данных для экспорта за выбранный период');
+    return;
+  }
+  const data = filtered.map(e => ({
+    'ID': e.id,
+    'Категория': e.cat,
+    'Метка': e.label || 'Без метки',
+    'Сумма': e.amount,
+    'Дата': fmtDate(e.date).replace(/\./g, '/'),
+    'Время': new Date(e.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
+  }));
+  const suffix = currentMonthKey ? currentMonthKey.replace('-', '_') : 'все';
+  downloadCSV(data, `расходы_${suffix}.csv`);
+}
+
+function exportSavingsCSV() {
+  const filtered = getMonthItems(S.savings, currentMonthKey);
+  if (filtered.length === 0) {
+    alert('Нет данных для экспорта за выбранный период');
+    return;
+  }
+  const data = filtered.map(s => ({
+    'ID': s.id,
+    'Метка': s.label || 'Без метки',
+    'Сумма': s.amount,
+    'Дата': fmtDate(s.date).replace(/\./g, '/'),
+    'Время': new Date(s.date).toLocaleTimeString('ru-RU', {hour: '2-digit', minute: '2-digit'})
+  }));
+  const suffix = currentMonthKey ? currentMonthKey.replace('-', '_') : 'все';
+  downloadCSV(data, `накопления_${suffix}.csv`);
+}
+
+/* Стили отчёта для iframe (дублируют .pdf-report-* из <style>, чтобы html2canvas видел чистый layout) */
+const PDF_EMBED_STYLES = `
+body{margin:0;background:#fff;}
+.pdf-report-root{width:794px;max-width:100%;padding:28px 32px;background:#fff;color:#111318;font-family:Manrope,Segoe UI,sans-serif;font-size:12px;line-height:1.45;box-sizing:border-box;}
+.pdf-report-root h1{font-size:22px;font-weight:800;margin:0 0 4px;}
+.pdf-report-root h2{font-size:15px;font-weight:700;margin:20px 0 10px;border-bottom:2px solid #e8eaed;padding-bottom:6px;}
+.pdf-report-root h3{font-size:13px;font-weight:700;margin:0 0 8px;color:#374151;}
+.pdf-report-meta{color:#6b7280;font-size:11px;margin-bottom:16px;}
+.pdf-kpi-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:8px;}
+.pdf-kpi{border:1px solid #e8eaed;border-radius:10px;padding:10px 12px;background:#fafbfc;}
+.pdf-kpi-label{font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;}
+.pdf-kpi-val{font-size:16px;font-weight:700;}
+.pdf-kpi-val.g{color:#059669;}
+.pdf-kpi-val.r{color:#dc2626;}
+.pdf-kpi-val.b{color:#2563eb;}
+.pdf-chart-block{margin:14px 0;}
+.pdf-chart-block img{display:block;width:100%;max-height:280px;object-fit:contain;}
+.pdf-chart-empty{color:#9ca3af;font-style:italic;margin:8px 0 16px;}
+.pdf-table{width:100%;border-collapse:collapse;margin-top:8px;font-size:11px;}
+.pdf-table th,.pdf-table td{border:1px solid #e8eaed;padding:6px 8px;text-align:left;}
+.pdf-table th{background:#f4f5f7;font-weight:700;}
+.pdf-table td.num{text-align:right;white-space:nowrap;}
+.pdf-footer{margin-top:20px;padding-top:10px;border-top:1px solid #e8eaed;color:#9ca3af;font-size:10px;}
+`;
+
+function getJsPDFConstructor() {
+  if (window.jspdf && window.jspdf.jsPDF) return window.jspdf.jsPDF;
+  if (typeof window.jsPDF !== 'undefined') return window.jsPDF;
+  return null;
+}
+
+async function renderReportNodeToPdf(reportEl, filename) {
+  const html2canvasFn = window.html2canvas;
+  const JsPDF = getJsPDFConstructor();
+  if (!html2canvasFn || !JsPDF) throw new Error('PDF libraries not loaded');
+
+  const iframe = document.createElement('iframe');
+  iframe.setAttribute('aria-hidden', 'true');
+  iframe.style.cssText = 'position:fixed;left:0;top:0;width:830px;height:95vh;max-height:5600px;border:0;opacity:0.01;pointer-events:none;z-index:2147483647;';
+  document.body.appendChild(iframe);
+
+  let canvas;
+  try {
+    const idoc = iframe.contentDocument;
+    idoc.open();
+    idoc.write('<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">');
+    idoc.write('<link rel="preconnect" href="https://fonts.googleapis.com">');
+    idoc.write('<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>');
+    idoc.write('<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&display=swap" rel="stylesheet">');
+    idoc.write('<style>' + PDF_EMBED_STYLES + '</style></head><body></body></html>');
+    idoc.close();
+
+    idoc.body.appendChild(idoc.importNode(reportEl, true));
+
+    if (idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready.catch(() => {});
+    await new Promise(r => setTimeout(r, 280));
+
+    const node = idoc.body.firstElementChild;
+    if (!node) throw new Error('PDF mount empty');
+
+    void node.offsetWidth;
+    void node.offsetHeight;
+
+    canvas = await html2canvasFn(node, {
+      scale: 2,
+      backgroundColor: '#ffffff',
+      logging: false,
+      useCORS: true,
+      allowTaint: false
+    });
+
+    if (!canvas.width || !canvas.height) {
+      throw new Error('Empty canvas');
+    }
+  } finally {
+    iframe.remove();
+  }
+
+  const imgData = canvas.toDataURL('image/png');
+  const pdf = new JsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const margin = 8;
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const pdfUsableHeight = pageHeight - margin * 2;
+  const imgWidth = pageWidth - margin * 2;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  let heightLeft = imgHeight;
+  let position = margin;
+
+  pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+  heightLeft -= pdfUsableHeight;
+
+  while (heightLeft > 0) {
+    position = margin - (imgHeight - heightLeft);
+    pdf.addPage();
+    pdf.addImage(imgData, 'PNG', margin, position, imgWidth, imgHeight);
+    heightLeft -= pdfUsableHeight;
+  }
+
+  pdf.save(filename);
+}
+
+function chartToPdfImage(chartInst) {
+  if (!chartInst) return null;
+  try {
+    return chartInst.toBase64Image('image/png', 2);
+  } catch {
+    return null;
+  }
+}
+
+function buildPdfReportElement() {
+  const monthKey = currentMonthKey || getMonthKey(todayISO());
+  const period = getPeriodSummary(monthKey);
+  const categoryStats = computeCategoryStats();
+  const totalReceivedAll = S.payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+  const totalExpAll = S.expenses.reduce((s, e) => s + Number(e.amount || 0), 0);
+  const totalSavAll = S.savings.reduce((s, sv) => s + Number(sv.amount || 0), 0);
+  const balanceAll = totalReceivedAll - totalExpAll;
+  const generatedAt = new Date().toLocaleString('ru-RU', {
+    day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+  });
+
+  const periodFilterLabel = currentPeriodFilter === 'week' ? 'Неделя'
+    : currentPeriodFilter === 'year' ? 'Год' : 'Месяц';
+
+  const chartBlocks = [
+    { img: chartToPdfImage(chart), title: 'Расходы по категориям (выбранный период)', empty: 'Нет расходов за период' },
+    { img: chartToPdfImage(statsChart), title: 'Средний расход по категориям', empty: 'Нет данных для диаграммы' },
+    { img: chartToPdfImage(trendChart), title: 'Тренд расходов за 6 месяцев', empty: 'Нет данных для тренда' }
+  ].map(block => {
+    if (block.img) {
+      return `<div class="pdf-chart-block"><h3>${esc(block.title)}</h3><img src="${block.img}" alt="${esc(block.title)}" /></div>`;
+    }
+    return `<p class="pdf-chart-empty">${esc(block.title)}: ${block.empty}</p>`;
+  }).join('');
+
+  const categoryRows = categoryStats.length
+    ? categoryStats.map(item => `
+        <tr>
+          <td>${esc(item.cat)}</td>
+          <td class="num">${fmt(item.avg)}</td>
+          <td class="num">${fmt(item.total)}</td>
+          <td class="num">${item.count}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4">Нет расходов</td></tr>';
+
+  const topExpenses = [...period.expenseItems]
+    .sort((a, b) => Number(b.amount) - Number(a.amount))
+    .slice(0, 15);
+  const expenseRows = topExpenses.length
+    ? topExpenses.map(e => `
+        <tr>
+          <td>${fmtDate(e.date)}</td>
+          <td>${esc(e.name)}</td>
+          <td>${esc(e.cat)}</td>
+          <td class="num">${fmt(e.amount)}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4">Нет расходов за период</td></tr>';
+
+  const root = document.createElement('div');
+  root.className = 'pdf-report-root';
+  root.innerHTML = `
+    <h1>FinFlow — финансовый отчёт</h1>
+    <div class="pdf-report-meta">
+      Сформирован: ${esc(generatedAt)}<br>
+      Период отчёта: ${esc(period.periodLabel)} (${esc(periodFilterLabel)})
+    </div>
+
+    <h2>Сводка за период</h2>
+    <div class="pdf-kpi-grid">
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Доходы</div><div class="pdf-kpi-val g">${esc(fmt(period.totalReceived))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Расходы</div><div class="pdf-kpi-val r">${esc(fmt(period.totalExp))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Накопления</div><div class="pdf-kpi-val b">${esc(fmt(period.totalSavings))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Баланс периода</div><div class="pdf-kpi-val ${period.balance >= 0 ? 'g' : 'r'}">${esc(fmt(Math.abs(period.balance)))}${period.balance < 0 ? ' (дефицит)' : ''}</div></div>
+    </div>
+
+    <h2>Общая картина (все данные)</h2>
+    <div class="pdf-kpi-grid">
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Всего доходов</div><div class="pdf-kpi-val g">${esc(fmt(totalReceivedAll))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Всего расходов</div><div class="pdf-kpi-val r">${esc(fmt(totalExpAll))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Накоплено</div><div class="pdf-kpi-val b">${esc(fmt(totalSavAll))}</div></div>
+      <div class="pdf-kpi"><div class="pdf-kpi-label">Общий баланс</div><div class="pdf-kpi-val ${balanceAll >= 0 ? 'g' : 'r'}">${esc(fmt(Math.abs(balanceAll)))}</div></div>
+    </div>
+
+    <h2>Диаграммы</h2>
+    ${chartBlocks}
+
+    <h2>Категории расходов</h2>
+    <table class="pdf-table">
+      <thead><tr><th>Категория</th><th>Средний</th><th>Всего</th><th>Записей</th></tr></thead>
+      <tbody>${categoryRows}</tbody>
+    </table>
+
+    <h2>Крупнейшие расходы за период</h2>
+    <table class="pdf-table">
+      <thead><tr><th>Дата</th><th>Название</th><th>Категория</th><th>Сумма</th></tr></thead>
+      <tbody>${expenseRows}</tbody>
+    </table>
+
+    <div class="pdf-footer">FinFlow · Отчёт сгенерирован автоматически</div>
+  `;
+  return root;
+}
+
+async function exportReportPDF() {
+  if (typeof window.html2canvas === 'undefined') {
+    showToast('❌ Не загружена библиотека html2canvas');
+    return;
+  }
+  if (!getJsPDFConstructor()) {
+    showToast('❌ Не загружена библиотека jsPDF');
+    return;
+  }
+
+  showToast('⏳ Формирование PDF...');
+  refresh();
+  renderStats();
+
+  if (document.fonts && document.fonts.ready) {
+    await document.fonts.ready.catch(() => {});
+  }
+  await new Promise(resolve => setTimeout(resolve, 500));
+
+  const reportEl = buildPdfReportElement();
+  const suffix = (currentMonthKey || getMonthKey(todayISO())).replace('-', '_');
+  const filename = `FinFlow_отчёт_${suffix}.pdf`;
+
+  try {
+    await renderReportNodeToPdf(reportEl, filename);
+    showToast('✅ PDF скачан');
+  } catch (e) {
+    console.error('PDF export error:', e);
+    showToast('❌ Ошибка создания PDF');
+  }
+}
+
+function downloadCSV(data, filename) {
+  if (data.length === 0) {
+    alert('Нет данных для экспорта');
+    return;
+  }
+
+  // Получаем заголовки из первого объекта
+  const headers = Object.keys(data[0]);
+  
+  // Создаем CSV строки
+  const csvRows = [];
+  csvRows.push(headers.join(';')); // Заголовки с разделителем ;
+  
+  // Добавляем данные
+  data.forEach(row => {
+    const values = headers.map(header => {
+      const value = row[header];
+      // Экранируем значения с точкой с запятой или кавычками
+      if (typeof value === 'string' && (value.includes(';') || value.includes('"'))) {
+        return '"' + value.replace(/"/g, '""') + '"';
+      }
+      return value;
+    });
+    csvRows.push(values.join(';'));
+  });
+
+  // Создаем Blob и скачиваем
+  const csvContent = '\ufeff' + csvRows.join('\n'); // BOM для корректного отображения в Excel
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  
+  if (link.download !== undefined) {
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', filename);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
+</script>
+
+</div> <!-- END MAIN APP -->
+
+</body>
+</html>
