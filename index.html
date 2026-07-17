@@ -1254,6 +1254,9 @@ input:focus, select:focus {
     </div>
     <div class="collapse-body closed" id="savListBody">
       <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
+          <input type="text" id="savSearchInput" placeholder="🔍 Поиск по названию..." style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--ff);color:var(--ink);background:var(--surface);" onkeyup="filterSavings()" />
+        </div>
         <div id="savList" class="pay-list"></div>
         <div id="savEmpty" class="empty-state" style="display:none">
           <div class="empty-icon">💎</div>
@@ -1278,6 +1281,9 @@ input:focus, select:focus {
     </div>
     <div class="collapse-body closed" id="payListBody">
       <div class="card-body" style="padding-top:12px;padding-bottom:14px;">
+        <div style="display:flex;gap:10px;margin-bottom:12px;">
+          <input type="text" id="paySearchInput" placeholder="🔍 Поиск по названию..." style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--ff);color:var(--ink);background:var(--surface);" onkeyup="filterPayments()" />
+        </div>
         <div id="payList" class="pay-list"></div>
         <div id="payEmpty" class="empty-state" style="display:none">
           <div class="empty-icon">💸</div>
@@ -1390,18 +1396,18 @@ input:focus, select:focus {
     </div>
   </div>
 
-  <div class="section-title">Поиск и фильтры</div>
+  <div class="section-title">Все расходы</div>
   <div class="card">
     <div class="card-hdr">
-      <div class="card-ico ico-r">🔍</div>
-      <div class="card-title">Поиск и расширенные фильтры</div>
-      <button class="collapse-trigger" type="button" onclick="toggleSection('advFilterBody','advFilterArrow')">
-        <span class="collapse-arrow" id="advFilterArrow">▼</span>
+      <div class="card-ico ico-r">🧾</div>
+      <div class="card-title">Все расходы</div>
+      <button class="collapse-trigger" type="button" onclick="toggleSection('fullExpBody','fullExpArrow')">
+        <span class="collapse-arrow" id="fullExpArrow">▼</span>
       </button>
     </div>
-    <div class="collapse-body closed" id="advFilterBody">
-      <div class="card-body">
-        <div class="fields">
+    <div class="collapse-body closed" id="fullExpBody">
+      <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
+        <div class="fields" style="margin-bottom:12px;">
           <div class="field span2">
             <label>Поиск по названию</label>
             <input type="text" id="filterSearchInput" placeholder="Введите название расхода..." onkeyup="applyAdvancedFilters()" />
@@ -1442,29 +1448,11 @@ input:focus, select:focus {
             <input type="text" id="filterTag" placeholder="Поиск по тегу..." onkeyup="applyAdvancedFilters()" />
           </div>
         </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
           <button class="btn btn-green" onclick="saveCurrentFilter()" style="flex:1;min-width:140px;">💾 Сохранить фильтр</button>
           <button class="btn btn-secondary" onclick="resetAdvancedFilters()" style="flex:1;min-width:140px;">🔄 Сбросить</button>
         </div>
         <div id="savedFiltersContainer" style="margin-top:12px;"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="section-title">Все расходы</div>
-  <div class="card">
-    <div class="card-hdr">
-      <div class="card-ico ico-r">🧾</div>
-      <div class="card-title">Все расходы</div>
-      <button class="collapse-trigger" type="button" onclick="toggleSection('fullExpBody','fullExpArrow')">
-        <span class="collapse-arrow" id="fullExpArrow">▼</span>
-      </button>
-    </div>
-    <div class="collapse-body closed" id="fullExpBody">
-      <div class="card-body" style="padding-top:12px;padding-bottom:12px;">
-        <div style="display:flex;gap:10px;margin-bottom:12px;">
-          <input type="text" id="expSearchInput" placeholder="🔍 Поиск по названию..." style="flex:1;padding:8px;border:1px solid var(--border);border-radius:6px;font-family:var(--ff);color:var(--ink);background:var(--surface);" onkeyup="filterExpenses()" />
-        </div>
         <div id="fullList" class="exp-list"></div>
         <div id="fullEmpty" class="empty-state" style="display:none">
           <div class="empty-icon">🧾</div>
@@ -2546,29 +2534,100 @@ function setPeriodFilter(period) {
   refresh();
 }
 
-function filterExpenses() {
-  const searchInput = el('expSearchInput');
-  if (!searchInput) return;
-  
-  const searchTerm = searchInput.value.toLowerCase();
-  const fList = el('fullList');
-  
-  if (!searchTerm) {
-    // Показываем все расходы
-    const sortedExp = [...S.expenses].sort((a,b) => b.id - a.id);
-    fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
-  } else {
-    // Фильтруем по названию и тегам
-    const filtered = S.expenses.filter(e => {
-      const nameMatch = e.name.toLowerCase().includes(searchTerm);
-      const tagsMatch = e.tags && e.tags.some(tag => tag.toLowerCase().includes(searchTerm));
-      return nameMatch || tagsMatch;
+function getFilteredPayments() {
+  const searchInput = el('paySearchInput');
+  const searchTerm = (searchInput?.value || '').trim().toLowerCase();
+  let filtered = [...S.payments];
+
+  if (searchTerm) {
+    filtered = filtered.filter(p => {
+      const labelMatch = (p.label || '').toLowerCase().includes(searchTerm);
+      const dateMatch = (p.date || '').includes(searchTerm);
+      return labelMatch || dateMatch;
     });
-    const sorted = [...filtered].sort((a,b) => b.id - a.id);
-    fList.innerHTML = sorted.length > 0 
-      ? sorted.map(e => expRowHTML(e, true)).join('')
-      : '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Расходы не найдены</div></div>';
   }
+
+  return filtered.sort((a, b) => b.id - a.id);
+}
+
+function getFilteredSavings() {
+  const searchInput = el('savSearchInput');
+  const searchTerm = (searchInput?.value || '').trim().toLowerCase();
+  let filtered = [...S.savings];
+
+  if (searchTerm) {
+    filtered = filtered.filter(s => {
+      const labelMatch = (s.label || '').toLowerCase().includes(searchTerm);
+      const dateMatch = (s.date || '').includes(searchTerm);
+      return labelMatch || dateMatch;
+    });
+  }
+
+  return filtered.sort((a, b) => b.id - a.id);
+}
+
+function filterPayments() {
+  const filtered = getFilteredPayments();
+  const pList = el('payList');
+  const pEmpty = el('payEmpty');
+  const pTotal = el('payTotalRow');
+
+  if (filtered.length === 0) {
+    pList.innerHTML = '';
+    pEmpty.style.display = 'block';
+    pTotal.style.display = 'none';
+    return;
+  }
+
+  pEmpty.style.display = 'none';
+  pList.innerHTML = filtered.map(p => payRowHTML(p, p.id)).join('');
+  pTotal.style.display = 'flex';
+  el('payTotalAmt').textContent = fmt(filtered.reduce((sum, p) => sum + Number(p.amount || 0), 0));
+}
+
+function filterSavings() {
+  const filtered = getFilteredSavings();
+  const sList = el('savList');
+  const sEmpty = el('savEmpty');
+  const sTotal = el('savTotalRow');
+
+  if (filtered.length === 0) {
+    sList.innerHTML = '';
+    sEmpty.style.display = 'block';
+    sTotal.style.display = 'none';
+    return;
+  }
+
+  sEmpty.style.display = 'none';
+  sList.innerHTML = filtered.map(s => savRowHTML(s, s.id)).join('');
+  sTotal.style.display = 'flex';
+  el('savTotalAmt').textContent = fmt(filtered.reduce((sum, s) => sum + Number(s.amount || 0), 0));
+}
+
+function getFilteredExpenses() {
+  const filter = getAdvancedFilterState();
+  return S.expenses.filter(e => {
+    const nameMatch = !filter.search || e.name.toLowerCase().includes(filter.search);
+    const catMatch = !filter.category || e.cat === filter.category;
+    const amountMatch = e.amount >= filter.minAmount && e.amount <= filter.maxAmount;
+    const tagMatch = !filter.tag || (e.tags && e.tags.some(tag => tag.toLowerCase().includes(filter.tag)));
+    const dateFromMatch = !filter.dateFrom || e.date >= filter.dateFrom;
+    const dateToMatch = !filter.dateTo || e.date <= filter.dateTo;
+    return nameMatch && catMatch && amountMatch && tagMatch && dateFromMatch && dateToMatch;
+  }).sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+}
+
+function filterExpenses() {
+  const fList = el('fullList');
+  if (!fList) return;
+
+  const filtered = getFilteredExpenses();
+  if (filtered.length === 0) {
+    fList.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">Расходы не найдены</div></div>';
+    return;
+  }
+
+  fList.innerHTML = filtered.map(e => expRowHTML(e, true)).join('');
 }
 
 function computeCategoryStats() {
@@ -2604,22 +2663,11 @@ function applyAdvancedFilters() {
   const fList = el('fullList');
   if (!fList) return;
 
-  let filtered = S.expenses.filter(e => {
-    const nameMatch = !filter.search || e.name.toLowerCase().includes(filter.search);
-    const catMatch = !filter.category || e.cat === filter.category;
-    const amountMatch = e.amount >= filter.minAmount && e.amount <= filter.maxAmount;
-    const tagMatch = !filter.tag || (e.tags && e.tags.some(tag => tag.toLowerCase().includes(filter.tag)));
-    const dateFromMatch = !filter.dateFrom || e.date >= filter.dateFrom;
-    const dateToMatch = !filter.dateTo || e.date <= filter.dateTo;
-    return nameMatch && catMatch && amountMatch && tagMatch && dateFromMatch && dateToMatch;
-  });
-
-  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
-  
-  if (sorted.length === 0) {
+  const filtered = getFilteredExpenses();
+  if (filtered.length === 0) {
     fList.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">По вашему фильтру ничего не найдено</div></div>';
   } else {
-    fList.innerHTML = sorted.map(e => expRowHTML(e, true)).join('');
+    fList.innerHTML = filtered.map(e => expRowHTML(e, true)).join('');
   }
 
   saveFiltersToSession(filter);
@@ -3217,37 +3265,35 @@ function refresh() {
   }
 
   /* PAYMENTS LIST */
-  const sortedPay = [...S.payments].sort((a,b) => b.id - a.id);
-  const chrono    = [...S.payments].sort((a,b) => a.id - b.id);
-  const idxMap    = {}; chrono.forEach((p,i) => { idxMap[p.id] = i+1; });
-
   const pList  = el('payList');
   const pEmpty = el('payEmpty');
   const pTotal = el('payTotalRow');
-  if (sortedPay.length === 0) {
+  const filteredPay = getFilteredPayments();
+  if (filteredPay.length === 0) {
     pList.innerHTML = ''; pEmpty.style.display = 'block'; pTotal.style.display = 'none';
   } else {
     pEmpty.style.display = 'none';
-    pList.innerHTML = sortedPay.map(p => payRowHTML(p, idxMap[p.id])).join('');
+    const chrono = [...S.payments].sort((a,b) => a.id - b.id);
+    const idxMap = {}; chrono.forEach((p,i) => { idxMap[p.id] = i+1; });
+    pList.innerHTML = filteredPay.map(p => payRowHTML(p, idxMap[p.id])).join('');
     pTotal.style.display = 'flex';
-    el('payTotalAmt').textContent = fmt(totalReceived);
+    el('payTotalAmt').textContent = fmt(filteredPay.reduce((sum, p) => sum + Number(p.amount || 0), 0));
   }
 
   /* SAVINGS */
-  const sortedSav = [...S.savings].sort((a,b) => b.id - a.id);
-  const chrono2 = [...S.savings].sort((a,b) => a.id - b.id);
-  const idxMap2 = {}; chrono2.forEach((s,i) => { idxMap2[s.id] = i+1; });
-
   const sList = el('savList');
   const sEmpty = el('savEmpty');
   const sTotal = el('savTotalRow');
-  if (sortedSav.length === 0) {
+  const filteredSav = getFilteredSavings();
+  if (filteredSav.length === 0) {
     sList.innerHTML = ''; sEmpty.style.display = 'block'; sTotal.style.display = 'none';
   } else {
     sEmpty.style.display = 'none';
-    sList.innerHTML = sortedSav.map(s => savRowHTML(s, idxMap2[s.id])).join('');
+    const chrono2 = [...S.savings].sort((a,b) => a.id - b.id);
+    const idxMap2 = {}; chrono2.forEach((s,i) => { idxMap2[s.id] = i+1; });
+    sList.innerHTML = filteredSav.map(s => savRowHTML(s, idxMap2[s.id])).join('');
     sTotal.style.display = 'flex';
-    el('savTotalAmt').textContent = fmt(totalSavings);
+    el('savTotalAmt').textContent = fmt(filteredSav.reduce((sum, s) => sum + Number(s.amount || 0), 0));
   }
 
   /* RECENT EXPENSES (overview, last 5) */
@@ -3269,9 +3315,8 @@ function refresh() {
     fList.innerHTML = ''; fEmpty.style.display = 'block';
   } else {
     fEmpty.style.display = 'none';
-    // Применяем фильтрацию поиска
-    const searchInput = el('expSearchInput');
-    if (searchInput && searchInput.value.trim()) {
+    const hasFilter = !!(el('filterSearchInput')?.value.trim() || el('filterCategory')?.value || el('filterMinAmount')?.value || el('filterMaxAmount')?.value || el('filterDateFrom')?.value || el('filterDateTo')?.value || el('filterTag')?.value.trim());
+    if (hasFilter) {
       filterExpenses();
     } else {
       fList.innerHTML = sortedExp.map(e => expRowHTML(e, true)).join('');
