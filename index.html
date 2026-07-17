@@ -1063,7 +1063,7 @@ input:focus, select:focus {
       <div class="kpi-sub">Общее количество накоплений</div>
       <div class="plan-progress" id="savingProgressWrap">
         <div class="plan-bar-bg"><div class="plan-bar" id="savingProgressBar"></div></div>
-        <div class="plan-label" id="savingProgressLabel">Цель: 200 000 ₽</div>
+        <div class="plan-label" id="savingProgressLabel">Цель: 300 000 ₽</div>
       </div>
     </div>
   </div>
@@ -3161,7 +3161,7 @@ function refresh() {
   const totalSavings  = S.savings.reduce((s,sv) => s + sv.amount, 0);
   const balance       = totalReceived - totalExp;
   const isPos         = balance >= 0;
-  const savingsGoal   = 200000;
+  const savingsGoal   = 300000;
   const savingsPct    = Math.min((totalSavings / savingsGoal) * 100, 100);
 
   buildMonthOptions();
@@ -3178,7 +3178,7 @@ function refresh() {
   el('kpiExpCount').textContent = S.expenses.length + ' записей';
   el('kpiSavings').textContent = fmt(totalSavings);
   el('savingProgressBar').style.width = savingsPct + '%';
-  el('savingProgressLabel').textContent = `Цель: ${fmt(savingsGoal)} — ${Math.round(savingsPct)}%`;
+  el('savingProgressLabel').textContent = `Цель: ${fmt(savingsGoal)} • ${Math.round(savingsPct)}%`;
 
   const bEl = el('kpiBalance');
   bEl.textContent = fmt(Math.abs(balance));
