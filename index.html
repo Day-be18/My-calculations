@@ -2769,7 +2769,10 @@ function getMonthlyComparisonData(months = 12) {
     const expenses = S.expenses
       .filter(e => getMonthKey(e.date) === key)
       .reduce((sum, e) => sum + Number(e.amount || 0), 0);
-    data[key] = { income, expenses, balance: income - expenses, label: getMonthLabel(key) };
+    const savings = S.savings
+      .filter(s => getMonthKey(s.date) === key)
+      .reduce((sum, s) => sum + Number(s.amount || 0), 0);
+    data[key] = { income, expenses, savings, balance: income - expenses, label: getMonthLabel(key) };
   }
 
   return Object.entries(data).map(([key, val]) => ({ ...val, key }));
@@ -2793,6 +2796,7 @@ function renderComparisonChart(comparisonData) {
   const labels = comparisonData.map(item => item.label);
   const incomeData = comparisonData.map(item => item.income);
   const expenseData = comparisonData.map(item => item.expenses);
+  const savingsData = comparisonData.map(item => item.savings || 0);
   const themeColors = getChartThemeColors();
 
   if (comparisonChart) comparisonChart.destroy();
@@ -2815,6 +2819,14 @@ function renderComparisonChart(comparisonData) {
           data: expenseData,
           backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#dc2626',
           borderColor: getComputedStyle(document.documentElement).getPropertyValue('--red').trim() || '#dc2626',
+          borderWidth: 1,
+          borderRadius: 4
+        },
+        {
+          label: 'Накопленные средства',
+          data: savingsData,
+          backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--purple').trim() || '#7c3aed',
+          borderColor: getComputedStyle(document.documentElement).getPropertyValue('--purple').trim() || '#7c3aed',
           borderWidth: 1,
           borderRadius: 4
         }
