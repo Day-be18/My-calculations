@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="FinFlow favicon">
+  <rect width="256" height="256" rx="56" fill="#2563EB"/>
+  <rect x="24" y="24" width="208" height="208" rx="44" fill="#1D4ED8"/>
+  <circle cx="128" cy="128" r="82" fill="none" stroke="rgba(255,255,255,0.24)" stroke-width="8"/>
+  <text x="128" y="152" text-anchor="middle" font-family="Manrope, Arial, sans-serif" font-size="84" font-weight="800" fill="#FFFFFF">FF</text>
+</svg>
