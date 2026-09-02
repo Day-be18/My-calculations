@@ -139,9 +139,33 @@ header {
   padding: 0 20px; position: sticky; top: 0; z-index: 200;
   padding-top: env(safe-area-inset-top);
 }
+.hdr-actions {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+}
 .logo { font-size: 1.25rem; font-weight: 800; color: var(--header-text); letter-spacing: -.5px; }
 .logo em { color: var(--logo-em); font-style: normal; }
 .hdr-date { font-size: .72rem; color: var(--header-text-3); display: none; }
+
+.money-toggle {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  min-height: 34px; padding: 7px 12px; border-radius: 8px; border: 1px solid var(--header-btn-border);
+  background: var(--header-btn-bg); color: var(--header-btn-text); cursor: pointer;
+  font-family: var(--ff); font-size: .75rem; font-weight: 600; transition: all .2s ease;
+  white-space: nowrap;
+}
+.money-toggle:hover {
+  background: rgba(255,255,255,.15); color: var(--header-text); transform: translateY(-1px);
+}
+.money-toggle:active { transform: translateY(0); }
+.money-toggle[aria-pressed="true"] { background: rgba(16,185,129,.18); border-color: rgba(16,185,129,.35); color: var(--header-text); }
+.eye-icon {
+  width: 17px; height: 17px; display: inline-block; flex-shrink: 0;
+}
+.eye-icon path, .eye-icon line, .eye-icon circle {
+  stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  fill: none;
+}
+.money-toggle-label { line-height: 1; }
 @media (min-width: 480px) { .hdr-date { display: block; } }
 .hdr-reset {
   background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
@@ -204,14 +228,16 @@ header {
     padding: 10px 16px 12px; justify-content: flex-start;
   }
   .hdr-meta { width: 100%; align-items: flex-start; gap: 8px; }
-  .hdr-reset, .hdr-theme { flex: 1; min-width: 140px; }
+  .hdr-actions { width: 100%; justify-content: space-between; }
+  .hdr-reset, .hdr-theme, .money-toggle { flex: 1; min-width: 120px; }
   .hdr-theme { justify-content: center; }
 }
 
 @media (min-width: 861px) {
   header { flex-wrap: nowrap; align-items: center; justify-content: space-between; }
   .hdr-meta { width: auto; align-items: center; }
-  .hdr-reset, .hdr-theme { flex: none; min-width: auto; }
+  .hdr-actions { flex-wrap: nowrap; }
+  .hdr-reset, .hdr-theme, .money-toggle { flex: none; min-width: auto; }
   .hdr-sync { width: auto; }
 }
 
@@ -1016,7 +1042,14 @@ input:focus, select:focus {
   <div class="hdr-meta">
     <div class="hdr-sync pending" id="dbSyncStatus">Проверка связи...</div>
   </div>
-  <div style="display:flex;gap:8px;align-items:center;">
+  <div class="hdr-actions">
+    <button id="moneyToggleBtn" class="money-toggle" type="button" aria-label="Скрыть средства" aria-pressed="false" onclick="toggleMoneyVisibility()">
+      <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12Z"></path>
+        <circle cx="12" cy="12" r="3.25"></circle>
+      </svg>
+      <span class="money-toggle-label">Средства</span>
+    </button>
     <div class="hdr-theme" onclick="toggleThemeMenu()">
       <span>⚙️</span>
       <span id="themeLabel">Тема</span>
@@ -1788,6 +1821,60 @@ function updateThemeUI(theme) {
   });
 }
 
+/* ═══ MONEY VISIBILITY ═══════════════════════════ */
+const MONEY_VISIBILITY_KEY = 'finflow-money-hidden';
+
+function isMoneyHidden() {
+  return localStorage.getItem(MONEY_VISIBILITY_KEY) === '1';
+}
+
+function setMoneyNodeState(node, value) {
+  if (!node) return;
+  const rawValue = Number(value) || 0;
+  const displayValue = Number.isFinite(rawValue) ? fmt(rawValue) : String(value ?? '0 ₽');
+  node.dataset.moneyValue = displayValue;
+  node.textContent = isMoneyHidden() ? '•••••• ₽' : displayValue;
+}
+
+function updateMoneyToggleButton() {
+  const btn = el('moneyToggleBtn');
+  if (!btn) return;
+  const hidden = isMoneyHidden();
+  const label = btn.querySelector('.money-toggle-label');
+  const svg = btn.querySelector('.eye-icon');
+
+  btn.setAttribute('aria-pressed', String(hidden));
+  btn.setAttribute('aria-label', hidden ? 'Показать средства' : 'Скрыть средства');
+  btn.title = hidden ? 'Показать средства' : 'Скрыть средства';
+  if (label) label.textContent = hidden ? 'Скрыто' : 'Средства';
+  if (svg) {
+    svg.innerHTML = hidden
+      ? '<path d="M3 3L21 21"></path><path d="M10.58 10.58A2 2 0 0 0 13.42 13.42"></path><path d="M9.88 5.64A10.45 10.45 0 0 1 12 5.5c6.5 0 10.5 6.5 10.5 6.5a18.08 18.08 0 0 1-4.26 5.2"></path><path d="M6.75 6.75A18.2 18.2 0 0 0 1.5 12S5.5 19.5 12 19.5a10.75 10.75 0 0 0 5.25-1.39"></path>'
+      : '<path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12Z"></path><circle cx="12" cy="12" r="3.25"></circle>';
+  }
+}
+
+function toggleMoneyVisibility() {
+  const hidden = !isMoneyHidden();
+  localStorage.setItem(MONEY_VISIBILITY_KEY, hidden ? '1' : '0');
+  updateMoneyToggleButton();
+
+  const maskedNodes = document.querySelectorAll('[data-money-value]');
+  maskedNodes.forEach(node => {
+    node.textContent = hidden ? '•••••• ₽' : (node.dataset.moneyValue || '0 ₽');
+  });
+}
+
+function syncMoneyVisibilityOnLoad() {
+  updateMoneyToggleButton();
+  const hidden = isMoneyHidden();
+  const maskedNodes = document.querySelectorAll('[data-money-value]');
+  maskedNodes.forEach(node => {
+    const value = node.dataset.moneyValue || '0 ₽';
+    node.textContent = hidden ? '•••••• ₽' : value;
+  });
+}
+
 /* ═══ AUTH FUNCTIONS ═════════════════════════════ */
 function setAuthUI(authenticated) {
   isAuthenticated = !!authenticated;
@@ -1954,6 +2041,7 @@ async function loadData() {
 
 document.addEventListener('DOMContentLoaded', async () => {
   initTheme();
+  syncMoneyVisibilityOnLoad();
   
   // Auth is validated only via DB (offline -> login screen)
   const authed = await validateStoredAuth();
@@ -2140,11 +2228,11 @@ function updateMonthSummary(monthKey) {
   const summary = getPeriodSummary(monthKey);
   const { incomeItems, expenseItems, savingsItems, periodLabel, totalReceived, totalExp, totalSavings } = summary;
 
-  el('monthIncome').textContent = fmt(totalReceived);
+  setMoneyNodeState(el('monthIncome'), totalReceived);
   el('monthIncomeCount').textContent = `${incomeItems.length} ${incomeItems.length === 1 ? 'выплата' : incomeItems.length < 5 ? 'выплаты' : 'выплат'}`;
-  el('monthExpenses').textContent = fmt(totalExp);
+  setMoneyNodeState(el('monthExpenses'), totalExp);
   el('monthExpensesCount').textContent = `${expenseItems.length} ${expenseItems.length === 1 ? 'запись' : 'записи'}`;
-  el('monthSavings').textContent = fmt(totalSavings);
+  setMoneyNodeState(el('monthSavings'), totalSavings);
   el('monthSavingsCount').textContent = `${savingsItems.length} ${savingsItems.length === 1 ? 'накопление' : 'накопления'}`;
   if (el('chartMonthLabel')) el('chartMonthLabel').textContent = periodLabel;
 }
@@ -3242,17 +3330,21 @@ function refresh() {
   renderSavedFilters();
 
   /* KPI */
-  el('kpiIncome').textContent   = fmt(totalReceived);
+  setMoneyNodeState(el('kpiIncome'), totalReceived);
   el('kpiPayCount').textContent = S.payments.length + ' ' +
     (S.payments.length === 1 ? 'выплата' : S.payments.length < 5 ? 'выплаты' : 'выплат');
-  el('kpiExpenses').textContent = fmt(totalExp);
+  setMoneyNodeState(el('kpiExpenses'), totalExp);
   el('kpiExpCount').textContent = S.expenses.length + ' записей';
-  el('kpiSavings').textContent = fmt(totalSavings);
+  setMoneyNodeState(el('kpiSavings'), totalSavings);
   el('savingProgressBar').style.width = savingsPct + '%';
-  el('savingProgressLabel').textContent = `Цель: ${fmt(savingsGoal)} • ${Math.round(savingsPct)}%`;
+  const savingGoalLabel = `Цель: ${fmt(savingsGoal)} • ${Math.round(savingsPct)}%`;
+  el('savingProgressLabel').dataset.moneyValue = savingGoalLabel;
+  el('savingProgressLabel').textContent = isMoneyHidden() ? '•••••• • •••' : savingGoalLabel;
 
   const bEl = el('kpiBalance');
-  bEl.textContent = fmt(Math.abs(balance));
+  const balanceValue = Math.abs(balance);
+  bEl.dataset.moneyValue = fmt(balanceValue);
+  bEl.textContent = isMoneyHidden() ? '•••••• ₽' : bEl.dataset.moneyValue;
   bEl.className   = 'kpi-val ' + (isPos ? 'g' : 'r');
   el('kpiStatus').textContent = totalReceived === 0
     ? '— запишите доход' : isPos ? '🟢 Всё хорошо' : '🔴 Перерасход';
