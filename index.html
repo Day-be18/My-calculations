@@ -1877,6 +1877,7 @@ function syncMoneyVisibilityOnLoad() {
 /* ═══ AUTH FUNCTIONS ═════════════════════════════ */
 function setAuthUI(authenticated) {
   isAuthenticated = !!authenticated;
+  if (authenticated) localStorage.setItem(MONEY_VISIBILITY_KEY, '1');
   el('authContainer').style.display = authenticated ? 'none' : 'flex';
   el('mainApp').style.display = authenticated ? 'block' : 'none';
 }
