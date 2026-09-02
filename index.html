@@ -1043,12 +1043,12 @@ input:focus, select:focus {
     <div class="hdr-sync pending" id="dbSyncStatus">Проверка связи...</div>
   </div>
   <div class="hdr-actions">
-    <button id="moneyToggleBtn" class="money-toggle" type="button" aria-label="Скрыть средства" aria-pressed="false" onclick="toggleMoneyVisibility()">
+    <button id="moneyToggleBtn" class="money-toggle" type="button" aria-label="Скрыть" aria-pressed="false" onclick="toggleMoneyVisibility()">
       <svg class="eye-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M1.5 12S5.5 4.5 12 4.5 22.5 12 22.5 12 18.5 19.5 12 19.5 1.5 12 1.5 12Z"></path>
         <circle cx="12" cy="12" r="3.25"></circle>
       </svg>
-      <span class="money-toggle-label">Средства</span>
+      <span class="money-toggle-label">Скрыть</span>
     </button>
     <div class="hdr-theme" onclick="toggleThemeMenu()">
       <span>⚙️</span>
@@ -1843,9 +1843,9 @@ function updateMoneyToggleButton() {
   const svg = btn.querySelector('.eye-icon');
 
   btn.setAttribute('aria-pressed', String(hidden));
-  btn.setAttribute('aria-label', hidden ? 'Показать средства' : 'Скрыть средства');
-  btn.title = hidden ? 'Показать средства' : 'Скрыть средства';
-  if (label) label.textContent = hidden ? 'Скрыто' : 'Средства';
+  btn.setAttribute('aria-label', hidden ? 'Показать' : 'Скрыть');
+  btn.title = hidden ? 'Показать' : 'Скрыть';
+  if (label) label.textContent = hidden ? 'Показать' : 'Скрыть';
   if (svg) {
     svg.innerHTML = hidden
       ? '<path d="M3 3L21 21"></path><path d="M10.58 10.58A2 2 0 0 0 13.42 13.42"></path><path d="M9.88 5.64A10.45 10.45 0 0 1 12 5.5c6.5 0 10.5 6.5 10.5 6.5a18.08 18.08 0 0 1-4.26 5.2"></path><path d="M6.75 6.75A18.2 18.2 0 0 0 1.5 12S5.5 19.5 12 19.5a10.75 10.75 0 0 0 5.25-1.39"></path>'
