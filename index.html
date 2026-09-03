@@ -288,6 +288,33 @@ main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%,
   .kpi-grid { grid-template-columns: 1fr; }
 }
 
+.mobile-quick-actions { display: none; }
+.quick-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.quick-action-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-family: var(--ff);
+  font-size: .8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.quick-action-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,.08);
+}
+.quick-action-btn.q-expense { background: var(--red-lt); border-color: rgba(220,38,38,.18); color: var(--red); }
+.quick-action-btn.q-saving { background: var(--blue-lt); border-color: rgba(37,99,235,.18); color: var(--blue); }
+.quick-action-btn.q-payment { background: var(--green-lt); border-color: rgba(16,185,129,.18); color: var(--green); }
+
 .month-summary-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
@@ -653,6 +680,7 @@ select {
 /* HIDE MOBILE */
 @media (max-width: 767px) {
   .hide-mobile { display: none !important; }
+  .mobile-quick-actions { display: block; }
 }
 
 /* CHART */
@@ -1138,6 +1166,26 @@ input:focus, select:focus {
         <button class="btn btn-green" onclick="exportReportPDF()">
           📄 Скачать отчёт (PDF)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="card mobile-quick-actions">
+    <div class="card-hdr">
+      <div class="card-ico ico-a">⚡</div>
+      <div>
+        <div class="card-title">Быстрые действия</div>
+        <div class="card-sub">Добавить без лишних полей</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="quick-action-grid">
+        <button class="quick-action-btn q-expense" onclick="quickAddExpense(300)">💸 -300 ₽</button>
+        <button class="quick-action-btn q-expense" onclick="quickAddExpense(500)">💸 -500 ₽</button>
+        <button class="quick-action-btn q-saving" onclick="quickAddSavings(300)">🏦 +300 ₽</button>
+        <button class="quick-action-btn q-saving" onclick="quickAddSavings(1000)">🏦 +1000 ₽</button>
+        <button class="quick-action-btn q-payment" onclick="quickAddPayment(2000)">💰 +2 000 ₽</button>
+        <button class="quick-action-btn q-payment" onclick="quickAddPayment(5000)">💰 +5 000 ₽</button>
       </div>
     </div>
   </div>
@@ -2279,6 +2327,44 @@ function toggleSection(bodyId, arrowId) {
   const isOpen = body.classList.contains('open');
   body.className = 'collapse-body ' + (isOpen ? 'closed' : 'open');
   arrow.className = 'collapse-arrow ' + (!isOpen ? 'open' : '');
+}
+
+function quickAddExpense(amount) {
+  const expenseName = el('expName');
+  const expenseCat = el('expCat');
+  const expenseAmount = el('expAmount');
+  const expenseDate = el('expDate');
+
+  if (expenseName) expenseName.value = 'Быстрый расход';
+  if (expenseCat) expenseCat.value = 'Еда';
+  if (expenseAmount) expenseAmount.value = amount;
+  if (expenseDate && !expenseDate.value) expenseDate.value = todayISO();
+
+  addExpense();
+}
+
+function quickAddSavings(amount) {
+  const savingsLabel = el('savLabel');
+  const savingsAmount = el('savAmount');
+  const savingsDate = el('savDate');
+
+  if (savingsLabel) savingsLabel.value = 'Быстрое накопление';
+  if (savingsAmount) savingsAmount.value = amount;
+  if (savingsDate && !savingsDate.value) savingsDate.value = todayISO();
+
+  addSavings();
+}
+
+function quickAddPayment(amount) {
+  const paymentLabel = el('payLabel');
+  const paymentAmount = el('payAmount');
+  const paymentDate = el('payDate');
+
+  if (paymentLabel) paymentLabel.value = 'Быстрая выплата';
+  if (paymentAmount) paymentAmount.value = amount;
+  if (paymentDate && !paymentDate.value) paymentDate.value = todayISO();
+
+  addPayment();
 }
 
 /* ═══ UTILS ══════════════════════════════════════ */
