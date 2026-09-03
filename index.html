@@ -1506,19 +1506,22 @@ input:focus, select:focus {
       <div class="card-ico ico-r">📥</div>
       <div>
         <div class="card-title">Импортировать расходы</div>
-        <div class="card-sub">Excel, CSV или PDF</div>
+        <div class="card-sub">Excel / CSV</div>
       </div>
     </div>
     <div class="card-body">
       <div class="fields">
         <div class="field span2">
           <label>Файл</label>
-          <input type="file" id="expenseImportFile" accept=".xlsx,.xls,.csv,.pdf" />
+          <input type="file" id="expenseImportFile" accept=".xlsx,.xls,.csv" />
         </div>
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="btn btn-green" type="button" onclick="importExpensesFromFile()" style="flex:1;min-width:160px;">📥 Импортировать</button>
         <button class="btn btn-secondary" type="button" onclick="downloadExpenseImportTemplate()" style="flex:1;min-width:160px;">⤓ Шаблон</button>
+      </div>
+      <div style="margin-top:10px;font-size:.72rem;color:var(--ink-3);line-height:1.5;">
+        Поддерживаются файлы Excel/CSV. Если у вас PDF, сначала преобразуйте его в Excel/CSV и затем импортируйте сюда.
       </div>
     </div>
   </div>
@@ -4358,29 +4361,6 @@ function normaliseExpenseCategory(cat) {
   return match || allowed.includes(value) ? value : 'Другое';
 }
 
-function readPdfText(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = async function () {
-      try {
-        const typedArray = new Uint8Array(this.result);
-        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
-        let text = '';
-        for (let i = 1; i <= pdf.numPages; i++) {
-          const page = await pdf.getPage(i);
-          const content = await page.getTextContent();
-          text += content.items.map(item => item.str).join(' ') + '\n';
-        }
-        resolve(text);
-      } catch (error) {
-        reject(error);
-      }
-    };
-    reader.onerror = () => reject(new Error('Ошибка чтения PDF'));
-    reader.readAsArrayBuffer(file);
-  });
-}
-
 async function importExpensesFromFile() {
   const input = document.getElementById('expenseImportFile');
   const file = input && input.files && input.files[0];
@@ -4389,41 +4369,21 @@ async function importExpensesFromFile() {
     return;
   }
 
+  const ext = file.name.split('.').pop().toLowerCase();
+  if (!['xlsx', 'xls', 'csv'].includes(ext)) {
+    showToast('❗ Поддерживаются только Excel и CSV. Сначала переведите PDF в Excel/CSV.');
+    return;
+  }
+
   try {
-    let importedRows = [];
-    const ext = file.name.split('.').pop().toLowerCase();
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data, { type: 'array' });
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' });
 
-    if (['xlsx', 'xls', 'csv'].includes(ext)) {
-      const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data, { type: 'array' });
-      const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' });
-      importedRows = rows.map(parseImportedExpenseRow).filter(Boolean);
-    } else if (ext === 'pdf') {
-      const text = await readPdfText(file);
-      const lines = text
-        .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(Boolean);
-
-      const matches = [];
-      for (const line of lines) {
-        const amountMatch = line.match(/(\d+[\s.,]?\d{0,2})\s*(?:₽|руб|rub)?/i);
-        const nameMatch = line.replace(/\d+[\s.,]?\d{0,2}\s*(?:₽|руб|rub)?/gi, '').trim();
-        if (amountMatch && nameMatch && nameMatch.length > 2) {
-          matches.push({
-            name: nameMatch,
-            category: 'Другое',
-            amount: Number(String(amountMatch[1]).replace(/\s/g, '').replace(',', '.')),
-            date: todayISO(),
-            tags: []
-          });
-        }
-      }
-      importedRows = matches.filter(r => Number.isFinite(r.amount) && r.amount > 0);
-    } else {
-      throw new Error('Формат файла не поддерживается');
-    }
+    const importedRows = rows
+      .map(parseImportedExpenseRow)
+      .filter(Boolean);
 
     if (!importedRows.length) {
       showToast('❗ В файле не найдено подходящих расходов');
@@ -4451,10 +4411,10 @@ async function importExpensesFromFile() {
       tags: item.tags
     }));
 
-    const { data, error } = await supabaseClient.from('expenses').insert(rowsToInsert).select();
+    const { data: inserted, error } = await supabaseClient.from('expenses').insert(rowsToInsert).select();
     if (error) throw error;
 
-    const saved = data.map(row => ({ ...row, tags: parseExpenseTags(row.tags) }));
+    const saved = inserted.map(row => ({ ...row, tags: parseExpenseTags(row.tags) }));
     S.expenses.push(...saved);
     saveLocalCache();
     refresh();
