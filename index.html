@@ -2312,6 +2312,61 @@ function switchTab(name) {
   window.scrollTo({ top:0, behavior:'smooth' });
 }
 
+const MOBILE_TAB_ORDER = ['overview', 'income', 'stats', 'expenses'];
+let touchStartX = 0;
+let touchStartY = 0;
+
+function handleMobileSwipe() {
+  if (window.innerWidth >= 768) return;
+
+  const activeNav = document.querySelector('.nav-btn.active');
+  if (!activeNav) return;
+
+  const currentIndex = MOBILE_TAB_ORDER.indexOf(activeNav.id.replace('nav-', ''));
+  if (currentIndex === -1) return;
+
+  const deltaX = touchStartX - event.changedTouches[0].clientX;
+  const deltaY = Math.abs(touchStartY - event.changedTouches[0].clientY);
+
+  if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < deltaY) return;
+
+  const nextIndex = deltaX > 0
+    ? Math.max(0, currentIndex - 1)
+    : Math.min(MOBILE_TAB_ORDER.length - 1, currentIndex + 1);
+
+  const nextTab = MOBILE_TAB_ORDER[nextIndex];
+  if (nextTab !== MOBILE_TAB_ORDER[currentIndex]) switchTab(nextTab);
+}
+
+window.addEventListener('touchstart', (event) => {
+  const touch = event.changedTouches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+}, { passive: true });
+
+window.addEventListener('touchend', (event) => {
+  const touch = event.changedTouches[0];
+  const deltaX = touch.clientX - touchStartX;
+  const deltaY = Math.abs(touch.clientY - touchStartY);
+
+  if (window.innerWidth >= 768) return;
+  if (Math.abs(deltaX) < 50 || Math.abs(deltaX) < deltaY) return;
+
+  const activeNav = document.querySelector('.nav-btn.active');
+  if (!activeNav) return;
+
+  const currentTab = activeNav.id.replace('nav-', '');
+  const currentIndex = MOBILE_TAB_ORDER.indexOf(currentTab);
+  if (currentIndex === -1) return;
+
+  const nextIndex = deltaX < 0
+    ? Math.min(MOBILE_TAB_ORDER.length - 1, currentIndex + 1)
+    : Math.max(0, currentIndex - 1);
+
+  const nextTab = MOBILE_TAB_ORDER[nextIndex];
+  if (nextTab !== currentTab) switchTab(nextTab);
+}, { passive: true });
+
 /* ═══ COLLAPSE CALCULATOR ════════════════════════ */
 let calcOpen = false;
 function toggleCalc() {
