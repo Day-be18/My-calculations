@@ -281,14 +281,28 @@ main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%,
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 10px; margin-bottom: 22px;
 }
-@media (max-width: 860px) { .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); } }
-@media (max-width: 640px) { .kpi-grid { grid-template-columns: 1fr; } }
+@media (max-width: 860px) {
+  .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+}
+@media (max-width: 640px) {
+  .kpi-grid { grid-template-columns: 1fr; }
+}
+
+.month-summary-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+@media (max-width: 860px) {
+  .month-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 520px) {
+  .month-summary-grid { grid-template-columns: 1fr; }
+}
 .kpi-card.k-saved::after { background: var(--purple); }
 
 .kpi-card {
   background: var(--surface); border-radius: var(--r);
   padding: 16px 18px; box-shadow: var(--sh);
-  position: relative; overflow: hidden;
+  position: relative; overflow: hidden; min-width: 0;
 }
 .kpi-card::after {
   content: ''; position: absolute; bottom: 0; left: 0; right: 0;
@@ -304,13 +318,20 @@ main { max-width: 1060px; margin: 0 auto; padding: 18px 12px 0; width: min(100%,
 }
 .kpi-val {
   font-size: 1.35rem; font-weight: 800; letter-spacing: -.8px; line-height: 1;
+  word-break: break-word; overflow-wrap: anywhere;
 }
 @media (min-width: 500px) { .kpi-val { font-size: 1.6rem; } }
-@media (max-width: 420px) { .kpi-val { font-size: 1.25rem; } .kpi-sub { font-size: .62rem; } }
+@media (max-width: 520px) {
+  .kpi-card { padding: 14px 14px; }
+  .kpi-label { letter-spacing: .7px; }
+  .kpi-val { font-size: 1.18rem; }
+  .kpi-sub { font-size: .62rem; }
+}
+@media (max-width: 420px) { .kpi-val { font-size: 1.1rem; } }
 .kpi-val.g { color: var(--green); }
 .kpi-val.r { color: var(--red); }
 .kpi-val.b { color: var(--blue); }
-.kpi-sub { font-size: .68rem; color: var(--ink-3); margin-top: 3px; }
+.kpi-sub { font-size: .68rem; color: var(--ink-3); margin-top: 3px; line-height: 1.35; }
 
 .plan-progress { margin-top: 8px; }
 .plan-bar-bg { background: var(--border); border-radius: 4px; height: 4px; overflow: hidden; }
