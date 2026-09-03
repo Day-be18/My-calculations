@@ -17,6 +17,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" defer></script>
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
@@ -1494,6 +1496,29 @@ input:focus, select:focus {
           </div>
         </div>
         <button class="btn btn-green btn-full" onclick="addExpense()">+ Добавить</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">Импорт расходов</div>
+  <div class="card">
+    <div class="card-hdr">
+      <div class="card-ico ico-r">📥</div>
+      <div>
+        <div class="card-title">Импортировать расходы</div>
+        <div class="card-sub">Excel, CSV или PDF</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="fields">
+        <div class="field span2">
+          <label>Файл</label>
+          <input type="file" id="expenseImportFile" accept=".xlsx,.xls,.csv,.pdf" />
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn btn-green" type="button" onclick="importExpensesFromFile()" style="flex:1;min-width:160px;">📥 Импортировать</button>
+        <button class="btn btn-secondary" type="button" onclick="downloadExpenseImportTemplate()" style="flex:1;min-width:160px;">⤓ Шаблон</button>
       </div>
     </div>
   </div>
@@ -4245,18 +4270,13 @@ function downloadCSV(data, filename) {
     return;
   }
 
-  // Получаем заголовки из первого объекта
   const headers = Object.keys(data[0]);
-  
-  // Создаем CSV строки
   const csvRows = [];
-  csvRows.push(headers.join(';')); // Заголовки с разделителем ;
-  
-  // Добавляем данные
+  csvRows.push(headers.join(';'));
+
   data.forEach(row => {
     const values = headers.map(header => {
       const value = row[header];
-      // Экранируем значения с точкой с запятой или кавычками
       if (typeof value === 'string' && (value.includes(';') || value.includes('"'))) {
         return '"' + value.replace(/"/g, '""') + '"';
       }
@@ -4265,11 +4285,10 @@ function downloadCSV(data, filename) {
     csvRows.push(values.join(';'));
   });
 
-  // Создаем Blob и скачиваем
-  const csvContent = '\ufeff' + csvRows.join('\n'); // BOM для корректного отображения в Excel
+  const csvContent = '\ufeff' + csvRows.join('\n');
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   const link = document.createElement('a');
-  
+
   if (link.download !== undefined) {
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -4278,6 +4297,172 @@ function downloadCSV(data, filename) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+}
+
+function downloadExpenseImportTemplate() {
+  const rows = [
+    ['name', 'category', 'amount', 'date', 'tags'],
+    ['Продукты', 'Еда', '850', todayISO(), 'магазин, семья'],
+    ['Такси', 'Транспорт', '320', todayISO(), 'поездка']
+  ];
+
+  const csv = rows.map(r => r.join(';')).join('\n');
+  const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'expense_import_template.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function parseImportedExpenseRow(row) {
+  const normalized = {};
+
+  const entries = Object.entries(row).map(([k, v]) => [String(k).trim().toLowerCase(), v]);
+  const map = Object.fromEntries(entries);
+
+  const name = map.name || map['название'] || map['item'] || map['наименование'] || map['описание'] || '';
+  const category = map.category || map['категория'] || map['type'] || 'Другое';
+  const amountValue = map.amount ?? map['сумма'] ?? map['total'] ?? map['value'];
+  const dateValue = map.date || map['дата'] || map['day'];
+  const tagsValue = map.tags || map['теги'] || map['tag'] || '';
+
+  if (!name || amountValue === undefined || amountValue === null || amountValue === '') {
+    return null;
+  }
+
+  const amount = Number(String(amountValue).replace(/\s|₽|руб|rub/gi, '').replace(',', '.'));
+  if (!Number.isFinite(amount) || amount <= 0) return null;
+
+  const date = dateValue ? (
+    typeof dateValue === 'number'
+      ? XLSX.SSF.parse_date_code(dateValue) && `${XLSX.SSF.parse_date_code(dateValue).y}-${String(XLSX.SSF.parse_date_code(dateValue).m).padStart(2, '0')}-${String(XLSX.SSF.parse_date_code(dateValue).d).padStart(2, '0')}`
+      : String(dateValue).slice(0, 10)
+  ) : todayISO();
+
+  return {
+    name: String(name).trim(),
+    cat: String(category).trim() || 'Другое',
+    amount,
+    date,
+    tags: String(tagsValue).split(/[;,]/).map(t => t.trim()).filter(Boolean)
+  };
+}
+
+function normaliseExpenseCategory(cat) {
+  const allowed = ['Еда','Обязательные расходы','Не обязательные расходы','Транспорт','Мобильная связь','Домашний интернет','VPN','Подписки','Другое'];
+  const value = String(cat || '').trim();
+  if (!value) return 'Другое';
+  const match = allowed.find(item => item.toLowerCase() === value.toLowerCase());
+  return match || allowed.includes(value) ? value : 'Другое';
+}
+
+function readPdfText(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = async function () {
+      try {
+        const typedArray = new Uint8Array(this.result);
+        const pdf = await pdfjsLib.getDocument({ data: typedArray }).promise;
+        let text = '';
+        for (let i = 1; i <= pdf.numPages; i++) {
+          const page = await pdf.getPage(i);
+          const content = await page.getTextContent();
+          text += content.items.map(item => item.str).join(' ') + '\n';
+        }
+        resolve(text);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    reader.onerror = () => reject(new Error('Ошибка чтения PDF'));
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+async function importExpensesFromFile() {
+  const input = document.getElementById('expenseImportFile');
+  const file = input && input.files && input.files[0];
+  if (!file) {
+    showToast('❗ Выберите файл для импорта');
+    return;
+  }
+
+  try {
+    let importedRows = [];
+    const ext = file.name.split('.').pop().toLowerCase();
+
+    if (['xlsx', 'xls', 'csv'].includes(ext)) {
+      const data = await file.arrayBuffer();
+      const workbook = XLSX.read(data, { type: 'array' });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { raw: false, defval: '' });
+      importedRows = rows.map(parseImportedExpenseRow).filter(Boolean);
+    } else if (ext === 'pdf') {
+      const text = await readPdfText(file);
+      const lines = text
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean);
+
+      const matches = [];
+      for (const line of lines) {
+        const amountMatch = line.match(/(\d+[\s.,]?\d{0,2})\s*(?:₽|руб|rub)?/i);
+        const nameMatch = line.replace(/\d+[\s.,]?\d{0,2}\s*(?:₽|руб|rub)?/gi, '').trim();
+        if (amountMatch && nameMatch && nameMatch.length > 2) {
+          matches.push({
+            name: nameMatch,
+            category: 'Другое',
+            amount: Number(String(amountMatch[1]).replace(/\s/g, '').replace(',', '.')),
+            date: todayISO(),
+            tags: []
+          });
+        }
+      }
+      importedRows = matches.filter(r => Number.isFinite(r.amount) && r.amount > 0);
+    } else {
+      throw new Error('Формат файла не поддерживается');
+    }
+
+    if (!importedRows.length) {
+      showToast('❗ В файле не найдено подходящих расходов');
+      return;
+    }
+
+    const prepared = importedRows.map(item => ({
+      name: String(item.name).trim(),
+      cat: normaliseExpenseCategory(item.cat),
+      amount: Number(item.amount),
+      date: item.date || todayISO(),
+      tags: Array.isArray(item.tags) ? item.tags : []
+    })).filter(item => item.name.length > 0 && item.amount > 0);
+
+    if (!prepared.length) {
+      showToast('❗ Нет корректных данных для импорта');
+      return;
+    }
+
+    const rowsToInsert = prepared.map(item => ({
+      name: item.name,
+      cat: item.cat,
+      amount: item.amount,
+      date: item.date,
+      tags: item.tags
+    }));
+
+    const { data, error } = await supabaseClient.from('expenses').insert(rowsToInsert).select();
+    if (error) throw error;
+
+    const saved = data.map(row => ({ ...row, tags: parseExpenseTags(row.tags) }));
+    S.expenses.push(...saved);
+    saveLocalCache();
+    refresh();
+    input.value = '';
+    showToast(`✅ Импортировано ${saved.length} расходов`);
+  } catch (error) {
+    console.error('Expense import error:', error);
+    showToast('❌ Ошибка импорта расходов');
   }
 }
 </script>
