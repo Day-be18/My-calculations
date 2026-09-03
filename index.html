@@ -120,6 +120,8 @@
   --row-bg: #334155;
   --row-hover-bg: #475569;
   --pay-date-color: #86efac;
+  --toast-bg: rgba(255,255,255,0.96);
+  --toast-text: #0f172a;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -711,11 +713,12 @@ select {
 .toast {
   position: fixed; bottom: calc(var(--nav-h) + 12px + env(safe-area-inset-bottom));
   left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--ink); color: #fff; font-size: .8rem; font-weight: 500;
+  background: var(--toast-bg, var(--ink)); color: var(--toast-text, #fff); font-size: .8rem; font-weight: 600;
   padding: 12px 20px; border-radius: 100px; opacity: 0;
   transition: all .4s ease; pointer-events: none;
   z-index: 999; white-space: nowrap; box-shadow: var(--sh-lg);
   animation: slideInUp .3s ease-out;
+  border: 1px solid rgba(148, 163, 184, 0.28);
 }
 .toast.show {
   opacity: 1; transform: translateX(-50%) translateY(0);
