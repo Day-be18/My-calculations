@@ -150,6 +150,7 @@ body {
   align-items: center; justify-content: center; padding: 24px;
   background: #f4f7fb; overflow-y: auto;
 }
+.admin-screen.open { display: flex !important; }
 .admin-screen::before {
   content: ''; position: fixed; inset: 0; pointer-events: none;
   background: radial-gradient(circle at 18% 18%, rgba(37,99,235,.14), transparent 25%),
@@ -2199,7 +2200,7 @@ let adminAuthenticated = false;
 
 function openAdminLogin() {
   el('authContainer').style.display = 'none';
-  el('adminScreen').style.display = 'flex';
+  el('adminScreen').classList.add('open');
   el('adminLoginView').style.display = 'block';
   el('adminPanelView').style.display = 'none';
   el('adminUsername').value = '';
@@ -2286,7 +2287,7 @@ async function deleteUserAccount(userId) {
 
 function closeAdminPanel() {
   adminAuthenticated = false;
-  el('adminScreen').style.display = 'none';
+  el('adminScreen').classList.remove('open');
   el('authContainer').style.display = 'flex';
 }
 
