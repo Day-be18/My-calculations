@@ -67,8 +67,9 @@
   --sync-ok: #86efac;
   --sync-fail: #fca5a5;
   --sync-pending: rgba(255,255,255,.85);
-  --btn-secondary-bg: #4b5563;
-  --btn-secondary-hover: #111827;
+  --btn-secondary-bg: #e5e7eb;
+  --btn-secondary-hover: #cbd5e1;
+  --btn-secondary-text: #1f2937;
   --input-bg: #f9fafb;
   --row-bg: #f9fafb;
   --row-hover-bg: #f3f4f6;
@@ -115,7 +116,8 @@
   --sync-fail: #fca5a5;
   --sync-pending: rgba(241,245,249,.85);
   --btn-secondary-bg: #475569;
-  --btn-secondary-hover: #f1f5f9;
+  --btn-secondary-hover: #64748b;
+  --btn-secondary-text: #f8fafc;
   --input-bg: #334155;
   --row-bg: #334155;
   --row-hover-bg: #475569;
@@ -481,7 +483,7 @@ select {
 .btn-green:hover  { background: #047857; }
 .btn-green:active { transform: scale(.97); }
 .btn-secondary {
-  background: var(--btn-secondary-bg); color: #fff; border: none; padding: 10px 20px;
+  background: var(--btn-secondary-bg); color: var(--btn-secondary-text); border: none; padding: 10px 20px;
   border-radius: var(--r-s); font-family: var(--ff); font-size: .9rem;
   font-weight: 500; cursor: pointer; transition: background .2s;
 }
