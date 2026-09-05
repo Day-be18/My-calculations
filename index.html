@@ -135,28 +135,53 @@ body {
   color: var(--ink);
   position: relative;
   min-height: 100vh;
-  .admin-entry {
-    position: fixed; top: 18px; right: 20px; z-index: 20;
-    border: 1px solid rgba(148,163,184,.35); border-radius: 10px;
-    padding: 8px 12px; background: rgba(255,255,255,.72); color: #64748b;
-    font: 600 .76rem var(--ff); cursor: pointer; backdrop-filter: blur(8px);
-    transition: all .2s ease;
-  }
-  .admin-entry:hover { color: #1d4ed8; border-color: #93c5fd; background: #fff; transform: translateY(-1px); }
-  .admin-panel-list { display: grid; gap: 8px; max-height: 48vh; overflow-y: auto; }
-  .admin-user-row {
-    display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px;
-    background: var(--input-bg); color: var(--ink); font-size: .84rem;
-  }
-  .admin-user-meta { min-width: 0; }
-  .admin-user-name { font-weight: 700; overflow-wrap: anywhere; }
-  .admin-user-id { color: var(--ink-3); font-size: .7rem; margin-top: 2px; }
-  .admin-protected { color: var(--green); font-size: .75rem; font-weight: 700; white-space: nowrap; }
-  .admin-delete-btn { min-height: 32px; padding: 6px 10px; border: 1px solid rgba(220,38,38,.25); border-radius: 7px; background: var(--red-lt); color: var(--red); cursor: pointer; font: 600 .75rem var(--ff); }
-  .admin-delete-btn:hover { background: var(--red); color: #fff; }
-  @media (max-width: 480px) { .admin-entry { top: 10px; right: 10px; } }
   padding-bottom: 20px;
+}
+.admin-entry {
+  position: fixed; top: 18px; right: 20px; z-index: 20;
+  border: 1px solid rgba(148,163,184,.35); border-radius: 10px;
+  padding: 8px 12px; background: rgba(255,255,255,.72); color: #64748b;
+  font: 600 .76rem var(--ff); cursor: pointer; backdrop-filter: blur(8px);
+  transition: all .2s ease;
+}
+.admin-entry:hover { color: #1d4ed8; border-color: #93c5fd; background: #fff; transform: translateY(-1px); }
+.admin-screen {
+  position: fixed; inset: 0; z-index: 12000; display: none;
+  align-items: center; justify-content: center; padding: 24px;
+  background: #f4f7fb; overflow-y: auto;
+}
+.admin-screen::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 18% 18%, rgba(37,99,235,.14), transparent 25%),
+              radial-gradient(circle at 82% 12%, rgba(124,58,237,.14), transparent 20%);
+}
+.admin-screen-card {
+  position: relative; z-index: 1; width: min(100%, 760px); max-height: calc(100vh - 48px);
+  overflow-y: auto; padding: 30px; border-radius: 22px; background: #fff;
+  box-shadow: 0 30px 70px rgba(15,23,42,.16);
+}
+.admin-screen-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
+.admin-screen-title { color: #0f172a; font-size: 1.55rem; font-weight: 800; }
+.admin-screen-subtitle { color: #64748b; font-size: .82rem; margin-top: 5px; }
+.admin-back-btn { border: 1px solid #cbd5e1; border-radius: 9px; padding: 8px 12px; background: #fff; color: #475569; cursor: pointer; font: 600 .78rem var(--ff); white-space: nowrap; }
+.admin-back-btn:hover { color: #1d4ed8; border-color: #93c5fd; }
+.admin-panel-list { display: grid; gap: 8px; max-height: 48vh; overflow-y: auto; }
+.admin-table-head, .admin-user-row { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(170px, 1.4fr) 110px; align-items: center; gap: 12px; }
+.admin-table-head { padding: 0 12px 8px; color: #64748b; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.admin-user-row { padding: 11px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; color: #0f172a; font-size: .84rem; }
+.admin-user-meta { min-width: 0; }
+.admin-user-name { font-weight: 700; overflow-wrap: anywhere; }
+.admin-user-id { color: #64748b; font-size: .7rem; overflow-wrap: anywhere; }
+.admin-protected { color: #047857; font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.admin-delete-btn { min-height: 32px; padding: 6px 10px; border: 1px solid rgba(220,38,38,.25); border-radius: 7px; background: #fef2f2; color: #dc2626; cursor: pointer; font: 600 .75rem var(--ff); }
+.admin-delete-btn:hover { background: #dc2626; color: #fff; }
+@media (max-width: 560px) {
+  .admin-entry { top: 10px; right: 10px; }
+  .admin-screen-card { padding: 22px 16px; }
+  .admin-table-head { display: none; }
+  .admin-user-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .admin-user-row .admin-user-id { grid-column: 1; }
+  .admin-user-row .admin-delete-btn, .admin-user-row .admin-protected { grid-column: 2; grid-row: 1 / span 2; }
 }
 @media (max-width: 767px) { body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px); } }
 @media (min-width: 768px) { body { padding-bottom: 48px; } }
@@ -2173,7 +2198,8 @@ function showAuthError(message, targetId = 'authError') {
 let adminAuthenticated = false;
 
 function openAdminLogin() {
-  el('adminModal').classList.add('show');
+  el('authContainer').style.display = 'none';
+  el('adminScreen').style.display = 'flex';
   el('adminLoginView').style.display = 'block';
   el('adminPanelView').style.display = 'none';
   el('adminUsername').value = '';
@@ -2219,10 +2245,8 @@ async function loadAdminUsers() {
     list.innerHTML = users.map(user => {
       const protectedAccount = String(user.username || '').toLowerCase() === 'daybe';
       return `<div class="admin-user-row">
-        <div class="admin-user-meta">
-          <div class="admin-user-name">${esc(user.username || 'Без логина')}</div>
-          <div class="admin-user-id">ID: ${esc(String(user.id))}</div>
-        </div>
+        <div class="admin-user-name">${esc(user.username || 'Без логина')}</div>
+        <div class="admin-user-id">${esc(String(user.id))}</div>
         ${protectedAccount
           ? '<span class="admin-protected">Защищён</span>'
           : `<button class="admin-delete-btn" type="button" data-user-id="${esc(String(user.id))}">Удалить</button>`}
@@ -2262,7 +2286,8 @@ async function deleteUserAccount(userId) {
 
 function closeAdminPanel() {
   adminAuthenticated = false;
-  closeModal('adminModal');
+  el('adminScreen').style.display = 'none';
+  el('authContainer').style.display = 'flex';
 }
 
 function togglePasswordVisibility() {
@@ -4311,11 +4336,14 @@ function showToast(msg) {
 </script>
 
 <!-- MODALS -->
-<div class="modal" id="adminModal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <div class="modal-title">⚙️ Admin panel</div>
-      <button class="modal-close" type="button" onclick="closeAdminPanel()">×</button>
+<div class="admin-screen" id="adminScreen">
+  <div class="admin-screen-card">
+    <div class="admin-screen-header">
+      <div>
+        <div class="admin-screen-title">⚙️ Admin panel</div>
+        <div class="admin-screen-subtitle">Управление аккаунтами FinFlow</div>
+      </div>
+      <button class="admin-back-btn" type="button" onclick="closeAdminPanel()">← К авторизации</button>
     </div>
     <div id="adminLoginView">
       <form class="auth-form" onsubmit="handleAdminLogin(event)">
@@ -4337,6 +4365,7 @@ function showToast(msg) {
     </div>
     <div id="adminPanelView" style="display:none;">
       <div class="auth-mode-note">Удаление аккаунта не затрагивает аккаунт <strong>DayBe</strong>.</div>
+      <div class="admin-table-head"><span>Логин</span><span>ID пользователя</span><span>Действие</span></div>
       <div id="adminUsersList" class="admin-panel-list"></div>
       <button class="btn btn-secondary btn-full" type="button" onclick="loadAdminUsers()" style="margin-top:14px;">↻ Обновить список</button>
     </div>
