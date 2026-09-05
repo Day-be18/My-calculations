@@ -868,6 +868,16 @@ select {
   color: #94a3b8; font-size: 0.9rem; text-decoration: none;
 }
 .auth-link:hover { color: #475569; }
+.auth-switch {
+  display: flex; gap: 6px; margin: 0 0 18px; padding: 4px;
+  background: #f1f5f9; border-radius: 10px;
+}
+.auth-switch button {
+  flex: 1; border: 0; padding: 9px 8px; border-radius: 7px;
+  background: transparent; color: #64748b; font: 600 .82rem var(--ff); cursor: pointer;
+}
+.auth-switch button.active { background: #fff; color: #1d4ed8; box-shadow: 0 1px 4px rgba(15,23,42,.12); }
+.auth-mode-note { color: #64748b; font-size: .78rem; line-height: 1.45; margin: -4px 0 14px; }
 
 @media (max-width: 480px) {
   .auth-card { padding: 30px 22px; }
@@ -1071,6 +1081,10 @@ input:focus, select:focus {
       <div class="auth-icon">☁️</div>
       <div class="auth-title">Login</div>
     </div>
+    <div class="auth-switch" role="tablist" aria-label="Авторизация">
+      <button id="loginModeBtn" class="active" type="button" onclick="setAuthMode('login')">Войти</button>
+      <button id="registerModeBtn" type="button" onclick="setAuthMode('register')">Создать аккаунт</button>
+    </div>
     <form id="authForm" class="auth-form" onsubmit="handleLogin(event)">
       <div class="input-group">
         <span class="input-addon">👤</span>
@@ -1091,6 +1105,26 @@ input:focus, select:focus {
         Sign In
       </button>
       <div id="authError" class="auth-error" style="display:none;">
+        <span class="error-icon">⚠️</span>
+        <span class="error-text"></span>
+      </div>
+    </form>
+    <form id="registerForm" class="auth-form" style="display:none;" onsubmit="handleRegister(event)">
+      <div class="auth-mode-note">Новый аккаунт начнётся с чистого локального профиля без данных других пользователей.</div>
+      <div class="input-group">
+        <span class="input-addon">👤</span>
+        <input type="text" id="registerUsername" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_-]+" autocomplete="username" placeholder="Новый логин">
+      </div>
+      <div class="input-group">
+        <span class="input-addon">🔒</span>
+        <input type="password" id="registerPassword" required minlength="8" autocomplete="new-password" placeholder="Пароль (минимум 8 символов)">
+      </div>
+      <div class="input-group">
+        <span class="input-addon">🔐</span>
+        <input type="password" id="registerPasswordConfirm" required minlength="8" autocomplete="new-password" placeholder="Повторите пароль">
+      </div>
+      <button type="submit" class="auth-btn">Создать аккаунт</button>
+      <div id="registerError" class="auth-error" style="display:none;">
         <span class="error-icon">⚠️</span>
         <span class="error-text"></span>
       </div>
@@ -1975,15 +2009,78 @@ async function validateStoredAuth() {
   try {
     const { data, error } = await supabaseClient
       .from('users')
-      .select('id')
+      .select('id,username')
       .eq('id', userId)
       .single();
     if (error || !data) throw error || new Error('no user');
+    localStorage.setItem('finflow-username', data.username || '');
     return true;
   } catch (_) {
     localStorage.removeItem('finflow-user');
     localStorage.removeItem('finflow-auth-at');
     return false;
+  }
+}
+
+function setAuthMode(mode) {
+  const register = mode === 'register';
+  el('authForm').style.display = register ? 'none' : 'block';
+  el('registerForm').style.display = register ? 'block' : 'none';
+  el('loginModeBtn').classList.toggle('active', !register);
+  el('registerModeBtn').classList.toggle('active', register);
+  el('authError').style.display = 'none';
+  el('registerError').style.display = 'none';
+}
+
+async function handleRegister(event) {
+  event.preventDefault();
+
+  const username = el('registerUsername').value.trim();
+  const password = el('registerPassword').value;
+  const passwordConfirm = el('registerPasswordConfirm').value;
+
+  if (!/^[A-Za-z0-9_-]{3,32}$/.test(username)) {
+    showAuthError('Логин: 3–32 символа, только латинские буквы, цифры, _ или -', 'registerError');
+    return;
+  }
+  if (password.length < 8) {
+    showAuthError('Пароль должен содержать минимум 8 символов', 'registerError');
+    return;
+  }
+  if (password !== passwordConfirm) {
+    showAuthError('Пароли не совпадают', 'registerError');
+    return;
+  }
+
+  try {
+    const { data: existing, error: lookupError } = await supabaseClient
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+    if (existing) {
+      showAuthError('Такой логин уже занят', 'registerError');
+      return;
+    }
+
+    const { data: created, error: createError } = await supabaseClient
+      .from('users')
+      .insert([{ username, password }])
+      .select('id,username')
+      .single();
+    if (createError || !created) throw createError || new Error('Не удалось создать аккаунт');
+
+    localStorage.setItem('finflow-user', created.id);
+    localStorage.setItem('finflow-username', created.username || username);
+    localStorage.setItem('finflow-auth-at', String(Date.now()));
+    markLocalOnlyAccount(created.id);
+    setAuthUI(true);
+    await loadData();
+    refresh();
+  } catch (error) {
+    console.error('Registration error:', error);
+    showAuthError('Не удалось создать аккаунт. Проверьте подключение.', 'registerError');
   }
 }
 
@@ -2020,6 +2117,7 @@ async function handleLogin(event) {
     
     // Success - show main app
     localStorage.setItem('finflow-user', users.id);
+    localStorage.setItem('finflow-username', users.username || username);
     localStorage.setItem('finflow-auth-at', String(Date.now()));
     setAuthUI(true);
     
@@ -2033,8 +2131,8 @@ async function handleLogin(event) {
   }
 }
 
-function showAuthError(message) {
-  const errorEl = el('authError');
+function showAuthError(message, targetId = 'authError') {
+  const errorEl = el(targetId);
   const errorTextEl = errorEl.querySelector('.error-text');
   if (errorTextEl) {
     errorTextEl.textContent = message;
@@ -2063,6 +2161,7 @@ function togglePasswordVisibility() {
 function logout() {
   setAuthUI(false);
   localStorage.removeItem('finflow-user');
+  localStorage.removeItem('finflow-username');
   localStorage.removeItem('finflow-auth-at');
   
   // Clear form
@@ -2083,6 +2182,16 @@ document.addEventListener('click', (e) => {
 
 /* ═══ BOOT ════════════════════════════════════════ */
 async function loadData() {
+  if (isTestAccount()) {
+    const loaded = loadLocalCache();
+    if (!loaded) {
+      S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[], savings:[] };
+      saveLocalCache();
+    }
+    setSyncStatus('local', 'Тестовый профиль · локально');
+    return;
+  }
+
   setSyncStatus('pending', 'Проверка связи с базой...');
   try {
     const { data: payments, error: paymentsError } = await supabaseClient.from('payments').select('*');
@@ -2470,7 +2579,23 @@ function getUserId() {
   return localStorage.getItem('finflow-user') || 'anon';
 }
 
+function isTestAccount() {
+  const userId = getUserId();
+  return localStorage.getItem('finflow-username') === 'finflow_test'
+    || localStorage.getItem(`finflow-local-only:${userId}`) === '1';
+}
+
+function markLocalOnlyAccount(userId) {
+  localStorage.setItem(`finflow-local-only:${userId}`, '1');
+}
+
+
+function getLocalRecordId() {
+  return Date.now() + Math.floor(Math.random() * 1000);
+}
+
 function getLocalCacheKey() {
+  if (isTestAccount()) return `finflow-test-cache:v1:${getUserId()}`;
   return `finflow-cache:v1:${getUserId()}`;
 }
 
@@ -2648,6 +2773,16 @@ async function addSavings() {
   if (amount <= 0) { showToast('❗ Укажите сумму накопления'); return; }
 
   try {
+    if (isTestAccount()) {
+      S.savings.push({ id: getLocalRecordId(), label, amount, date });
+      el('savLabel').value = '';
+      el('savAmount').value = '';
+      refresh();
+      saveLocalCache();
+      setSyncStatus('local', 'Тестовый профиль · локально');
+      showToast('✅ Накопление записано локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { data, error } = await supabaseClient.from('savings').insert([{ label, amount, date }]).select();
     if (error) throw error;
@@ -2667,6 +2802,13 @@ async function addSavings() {
 
 async function deleteSavings(id) {
   try {
+    if (isTestAccount()) {
+      S.savings = S.savings.filter(s => s.id !== id);
+      refresh();
+      saveLocalCache();
+      showToast('🗑 Накопление удалено локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient.from('savings').delete().eq('id', id);
     if (error) throw error;
@@ -2720,6 +2862,15 @@ async function saveSavingsEdit() {
   }
 
   try {
+    if (isTestAccount()) {
+      const savings = S.savings.find(s => s.id === editingSavingsId);
+      if (savings) Object.assign(savings, { label, amount, date });
+      closeModal('editSavingsModal');
+      refresh();
+      saveLocalCache();
+      showToast('✅ Накопление обновлено локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient
       .from('savings')
@@ -2756,6 +2907,16 @@ async function addPayment() {
   if (amount <= 0) { showToast('❗ Укажите сумму выплаты'); return; }
 
   try {
+    if (isTestAccount()) {
+      S.payments.push({ id: getLocalRecordId(), label, amount, date });
+      el('payLabel').value = '';
+      el('payAmount').value = '';
+      refresh();
+      saveLocalCache();
+      setSyncStatus('local', 'Тестовый профиль · локально');
+      showToast('✅ Выплата записана локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { data, error } = await supabaseClient.from('payments').insert([{ label, amount, date }]).select();
     if (error) throw error;
@@ -2775,6 +2936,13 @@ async function addPayment() {
 
 async function deletePayment(id) {
   try {
+    if (isTestAccount()) {
+      S.payments = S.payments.filter(p => p.id !== id);
+      refresh();
+      saveLocalCache();
+      showToast('🗑 Выплата удалена локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient.from('payments').delete().eq('id', id);
     if (error) throw error;
@@ -2848,6 +3016,18 @@ async function addExpense() {
   if (amount <= 0){ showToast('❗ Укажите сумму');    return; }
 
   try {
+    if (isTestAccount()) {
+      const saved = { id: getLocalRecordId(), name, cat, amount, date, tags };
+      S.expenses.push(saved);
+      el('expName').value = '';
+      el('expAmount').value = '';
+      el('expTags').value = '';
+      refresh();
+      saveLocalCache();
+      setSyncStatus('local', 'Тестовый профиль · локально');
+      showToast('✅ Расход добавлен локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const includeTags = canSyncExpenseTags();
     const { data, error } = await insertExpense(expenseRowForDb({ name, cat, amount, date, tags }, includeTags));
@@ -2872,6 +3052,13 @@ async function addExpense() {
 
 async function deleteExpense(id) {
   try {
+    if (isTestAccount()) {
+      S.expenses = S.expenses.filter(e => e.id !== id);
+      refresh();
+      saveLocalCache();
+      showToast('🗑 Расход удалён локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient.from('expenses').delete().eq('id', id);
     if (error) throw error;
@@ -3813,6 +4000,18 @@ async function resetAll() {
     return;
   }
   try {
+    if (isTestAccount()) {
+      S = { payments:[], plannedIncome:0, avgDay:0, _rate:0, _count:0, _days:22, _bonus:0, _tax:0, _net:0, expenses:[], savings:[] };
+      saveExpenseTagsMap({});
+      saveLocalCache();
+      ['shiftRate','shiftCount','bonus'].forEach(id => el(id).value = '');
+      el('workDays').value = '22';
+      el('incomeResult').style.display = 'none';
+      refresh();
+      setSyncStatus('local', 'Тестовый профиль · локально');
+      showToast('🗑 Тестовые данные сброшены');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     await supabaseClient.from('payments').delete().neq('id', 0); // Delete all
     await supabaseClient.from('expenses').delete().neq('id', 0);
@@ -3880,6 +4079,15 @@ async function savePaymentEdit() {
   }
 
   try {
+    if (isTestAccount()) {
+      const payment = S.payments.find(p => p.id === editingPaymentId);
+      if (payment) Object.assign(payment, { label, amount, date });
+      closeModal('editPaymentModal');
+      refresh();
+      saveLocalCache();
+      showToast('✅ Выплата обновлена локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const { error } = await supabaseClient
       .from('payments')
@@ -3936,6 +4144,15 @@ async function saveExpenseEdit() {
   }
 
   try {
+    if (isTestAccount()) {
+      const expense = S.expenses.find(e => e.id === editingExpenseId);
+      if (expense) Object.assign(expense, { name, cat, amount, date, tags });
+      closeModal('editExpenseModal');
+      refresh();
+      saveLocalCache();
+      showToast('✅ Расход обновлён локально');
+      return;
+    }
     if (isOffline()) { setSyncStatus('local', 'Локально'); showToast('📴 Нет интернета'); return; }
     const includeTags = canSyncExpenseTags();
     const updateResult = await updateExpense(editingExpenseId, expenseRowForDb({ name, cat, amount, date, tags }, includeTags));
