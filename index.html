@@ -10,6 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="FinFlow" />
+  <link rel="manifest" href="manifest.webmanifest" />
   <link rel="icon" href="favicon.svg" type="image/svg+xml" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -187,6 +188,13 @@ header {
 }
 .hdr-reset:hover::before { left: 100%; }
 .hdr-reset:hover { background: rgba(255,255,255,.16); color: var(--header-text); transform: translateY(-1px); }
+.hdr-backup {
+  background: var(--header-btn-bg); border: 1px solid var(--header-btn-border);
+  color: var(--header-btn-text); font-family: var(--ff); font-size: .75rem;
+  font-weight: 500; padding: 6px 14px; border-radius: var(--r-s);
+  cursor: pointer; transition: all .3s ease; white-space: nowrap;
+}
+.hdr-backup:hover { background: rgba(16,185,129,.18); color: var(--header-text); border-color: rgba(16,185,129,.35); transform: translateY(-1px); }
 .hdr-logout {
   background: rgba(239,68,68,.1); color: #dc2626; border: 1px solid rgba(239,68,68,.2);
   padding: 8px 12px; border-radius: 6px; font-size: .8rem; font-weight: 600;
@@ -235,7 +243,7 @@ header {
   }
   .hdr-meta { width: 100%; align-items: flex-start; gap: 8px; }
   .hdr-actions { width: 100%; justify-content: space-between; }
-  .hdr-reset, .hdr-theme, .money-toggle { flex: 1; min-width: 120px; }
+  .hdr-reset, .hdr-backup, .hdr-theme, .money-toggle { flex: 1; min-width: 120px; }
   .hdr-theme { justify-content: center; }
 }
 
@@ -243,7 +251,7 @@ header {
   header { flex-wrap: nowrap; align-items: center; justify-content: space-between; }
   .hdr-meta { width: auto; align-items: center; }
   .hdr-actions { flex-wrap: nowrap; }
-  .hdr-reset, .hdr-theme, .money-toggle { flex: none; min-width: auto; }
+  .hdr-reset, .hdr-backup, .hdr-theme, .money-toggle { flex: none; min-width: auto; }
   .hdr-sync { width: auto; }
 }
 
@@ -1115,6 +1123,7 @@ input:focus, select:focus {
         <button class="theme-option" onclick="setTheme('auto')">🔄 Авто</button>
       </div>
     </div>
+    <button class="hdr-backup" type="button" onclick="openBackupModal()">💾 Резервная копия</button>
     <button class="hdr-reset" onclick="resetAll()">↺ Сбросить</button>
     <button class="hdr-logout" onclick="logout()">🚪 Выйти</button>
   </div>
@@ -2496,6 +2505,139 @@ function loadLocalCache() {
   }
 }
 
+const BACKUP_FORMAT = 'finflow-backup';
+const BACKUP_VERSION = 1;
+
+function getBackupPayload() {
+  return {
+    format: BACKUP_FORMAT,
+    version: BACKUP_VERSION,
+    exportedAt: new Date().toISOString(),
+    data: {
+      payments: S.payments || [],
+      expenses: S.expenses || [],
+      savings: S.savings || [],
+      plannedIncome: Number(S.plannedIncome) || 0,
+      avgDay: Number(S.avgDay) || 0,
+      calculator: {
+        rate: Number(S._rate) || 0,
+        count: Number(S._count) || 0,
+        days: Number(S._days) || 22,
+        bonus: Number(S._bonus) || 0
+      }
+    },
+    settings: {
+      theme: localStorage.getItem('finflow-theme') || 'auto',
+      moneyHidden: localStorage.getItem(MONEY_VISIBILITY_KEY) === '1',
+      month: localStorage.getItem('finflow-month') || '',
+      period: localStorage.getItem('finflow-period') || 'month',
+      savedFilters: getSavedFilters(),
+      activeFilter: localStorage.getItem('finflow-active-filter') || null,
+      expenseTags: loadExpenseTagsMap()
+    }
+  };
+}
+
+function downloadBackup() {
+  const payload = JSON.stringify(getBackupPayload(), null, 2);
+  const blob = new Blob([payload], { type: 'application/json;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  const date = new Date().toISOString().slice(0, 10);
+  link.href = url;
+  link.download = `finflow-backup-${date}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  showToast('✅ Резервная копия скачана');
+}
+
+function normalizeBackupData(data) {
+  if (!data || !Array.isArray(data.payments) || !Array.isArray(data.expenses) || !Array.isArray(data.savings)) {
+    throw new Error('Некорректная структура данных');
+  }
+
+  const validRecords = (records, amountKey) => records.filter(record => {
+    if (!record || typeof record !== 'object') return false;
+    const amount = Number(record[amountKey]);
+    return Number.isFinite(amount) && amount >= 0;
+  });
+
+  return {
+    payments: validRecords(data.payments, 'amount'),
+    expenses: validRecords(data.expenses, 'amount').map(expense => ({
+      ...expense,
+      tags: parseExpenseTags(expense.tags)
+    })),
+    savings: validRecords(data.savings, 'amount'),
+    plannedIncome: Number(data.plannedIncome) || 0,
+    avgDay: Number(data.avgDay) || 0,
+    calculator: {
+      rate: Number(data.calculator?.rate) || 0,
+      count: Number(data.calculator?.count) || 0,
+      days: Number(data.calculator?.days) || 22,
+      bonus: Number(data.calculator?.bonus) || 0
+    }
+  };
+}
+
+async function importBackupFile() {
+  const input = el('backupFile');
+  const file = input?.files?.[0];
+  if (!file) {
+    showToast('❗ Выберите JSON-файл');
+    return;
+  }
+
+  try {
+    const backup = JSON.parse(await file.text());
+    if (backup.format !== BACKUP_FORMAT || backup.version !== BACKUP_VERSION) {
+      throw new Error('Неподдерживаемый формат резервной копии');
+    }
+
+    const data = normalizeBackupData(backup.data);
+    const total = data.payments.length + data.expenses.length + data.savings.length;
+    if (!confirm(`Восстановить ${total} записей локально? Текущий локальный кэш будет заменён.`)) return;
+
+    S.payments = data.payments;
+    S.expenses = data.expenses;
+    S.savings = data.savings;
+    S.plannedIncome = data.plannedIncome;
+    S.avgDay = data.avgDay;
+    S._rate = data.calculator.rate;
+    S._count = data.calculator.count;
+    S._days = data.calculator.days;
+    S._bonus = data.calculator.bonus;
+
+    const settings = backup.settings || {};
+    if (['light', 'dark', 'auto'].includes(settings.theme)) setTheme(settings.theme);
+    localStorage.setItem(MONEY_VISIBILITY_KEY, settings.moneyHidden ? '1' : '0');
+    if (settings.month) localStorage.setItem('finflow-month', settings.month);
+    if (['week', 'month', 'year'].includes(settings.period)) localStorage.setItem('finflow-period', settings.period);
+    if (Array.isArray(settings.savedFilters)) saveSavedFilters(settings.savedFilters);
+    if (settings.activeFilter) localStorage.setItem('finflow-active-filter', settings.activeFilter);
+    if (settings.expenseTags && typeof settings.expenseTags === 'object') {
+      localStorage.setItem(expenseTagsStorageKey(), JSON.stringify(settings.expenseTags));
+    }
+
+    saveLocalCache();
+    syncMoneyVisibilityOnLoad();
+    closeModal('backupModal');
+    refresh();
+    setSyncStatus('local', 'Восстановлено локально');
+    showToast(`✅ Восстановлено записей: ${total}`);
+    input.value = '';
+  } catch (error) {
+    console.error('Backup import error:', error);
+    showToast(`❌ ${error.message || 'Не удалось прочитать резервную копию'}`);
+  }
+}
+
+function openBackupModal() {
+  el('backupModal')?.classList.add('show');
+}
+
 /* ═══ SAVINGS ═════════════════════════════════════
    Накопленные средства                            */
 async function addSavings() {
@@ -3831,24 +3973,29 @@ function showToast(msg) {
   toastTimer = setTimeout(() => t.classList.remove('show'), 2400);
 }
 
-/* ═══ SERVICE WORKER (offline) ════════════════════ */
-if ('serviceWorker' in navigator) {
-  const sw = `
-    const CACHE='finflow-v3';
-    self.addEventListener('install', e=>e.waitUntil(
-      caches.open(CACHE).then(c=>c.addAll([self.registration.scope])).catch(()=>{})
-    ));
-    self.addEventListener('fetch', e=>e.respondWith(
-      caches.match(e.request).then(r=>r||fetch(e.request))
-    ));
-  `;
-  navigator.serviceWorker.register(
-    URL.createObjectURL(new Blob([sw],{type:'application/javascript'}))
-  ).catch(()=>{});
-}
 </script>
 
 <!-- MODALS -->
+<div class="modal" id="backupModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">💾 Резервная копия</div>
+      <button class="modal-close" type="button" onclick="closeModal('backupModal')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="color:var(--ink-2);font-size:.84rem;line-height:1.5;margin-bottom:16px;">
+        Сохраните все операции и настройки в JSON-файл. Импорт заменяет только локальные данные и не удаляет записи из облачной базы.
+      </p>
+      <button class="btn btn-green btn-full" type="button" onclick="downloadBackup()">⬇ Скачать резервную копию</button>
+      <div style="border-top:1px solid var(--border);margin:20px 0;padding-top:16px;">
+        <label class="field-label" for="backupFile">Восстановить из файла</label>
+        <input id="backupFile" type="file" accept="application/json,.json" style="width:100%;margin:8px 0 12px;" />
+        <button class="btn btn-secondary btn-full" type="button" onclick="importBackupFile()">⬆ Восстановить локально</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="editPaymentModal">
   <div class="modal-content">
     <div class="modal-header">
@@ -4282,6 +4429,16 @@ function downloadCSV(data, filename) {
   }
 }
 
+</script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./service-worker.js').catch(error => {
+        console.warn('PWA service worker registration failed:', error);
+      });
+    });
+  }
 </script>
 
 </div> <!-- END MAIN APP -->
