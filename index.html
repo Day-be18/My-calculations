@@ -133,7 +133,29 @@ body {
   font-family: var(--ff);
   background: var(--bg);
   color: var(--ink);
+  position: relative;
   min-height: 100vh;
+  .admin-entry {
+    position: fixed; top: 18px; right: 20px; z-index: 20;
+    border: 1px solid rgba(148,163,184,.35); border-radius: 10px;
+    padding: 8px 12px; background: rgba(255,255,255,.72); color: #64748b;
+    font: 600 .76rem var(--ff); cursor: pointer; backdrop-filter: blur(8px);
+    transition: all .2s ease;
+  }
+  .admin-entry:hover { color: #1d4ed8; border-color: #93c5fd; background: #fff; transform: translateY(-1px); }
+  .admin-panel-list { display: grid; gap: 8px; max-height: 48vh; overflow-y: auto; }
+  .admin-user-row {
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--input-bg); color: var(--ink); font-size: .84rem;
+  }
+  .admin-user-meta { min-width: 0; }
+  .admin-user-name { font-weight: 700; overflow-wrap: anywhere; }
+  .admin-user-id { color: var(--ink-3); font-size: .7rem; margin-top: 2px; }
+  .admin-protected { color: var(--green); font-size: .75rem; font-weight: 700; white-space: nowrap; }
+  .admin-delete-btn { min-height: 32px; padding: 6px 10px; border: 1px solid rgba(220,38,38,.25); border-radius: 7px; background: var(--red-lt); color: var(--red); cursor: pointer; font: 600 .75rem var(--ff); }
+  .admin-delete-btn:hover { background: var(--red); color: #fff; }
+  @media (max-width: 480px) { .admin-entry { top: 10px; right: 10px; } }
   padding-bottom: 20px;
 }
 @media (max-width: 767px) { body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px); } }
@@ -1076,6 +1098,7 @@ input:focus, select:focus {
 
 <!-- AUTH FORM -->
 <div id="authContainer" class="auth-container">
+  <button class="admin-entry" type="button" onclick="openAdminLogin()">⚙️ Admin panel</button>
   <div class="auth-card">
     <div class="auth-logo-wrap">
       <div class="auth-icon">☁️</div>
@@ -2145,6 +2168,101 @@ function showAuthError(message, targetId = 'authError') {
   setTimeout(() => {
     errorEl.style.display = 'none';
   }, 3000);
+}
+
+let adminAuthenticated = false;
+
+function openAdminLogin() {
+  el('adminModal').classList.add('show');
+  el('adminLoginView').style.display = 'block';
+  el('adminPanelView').style.display = 'none';
+  el('adminUsername').value = '';
+  el('adminPassword').value = '';
+  el('adminError').style.display = 'none';
+}
+
+async function handleAdminLogin(event) {
+  event.preventDefault();
+  const username = el('adminUsername').value.trim();
+  const password = el('adminPassword').value;
+  const error = el('adminError');
+
+  if (username !== 'admin' || password !== 'root') {
+    error.querySelector('.error-text').textContent = 'Неверные данные администратора';
+    error.style.display = 'flex';
+    return;
+  }
+
+  adminAuthenticated = true;
+  el('adminLoginView').style.display = 'none';
+  el('adminPanelView').style.display = 'block';
+  await loadAdminUsers();
+}
+
+async function loadAdminUsers() {
+  if (!adminAuthenticated) return;
+  const list = el('adminUsersList');
+  list.innerHTML = '<div class="auth-mode-note">Загрузка аккаунтов...</div>';
+
+  try {
+    const { data: users, error } = await supabaseClient
+      .from('users')
+      .select('id,username')
+      .order('username', { ascending: true });
+    if (error) throw error;
+
+    if (!users || users.length === 0) {
+      list.innerHTML = '<div class="auth-mode-note">Аккаунтов пока нет.</div>';
+      return;
+    }
+
+    list.innerHTML = users.map(user => {
+      const protectedAccount = String(user.username || '').toLowerCase() === 'daybe';
+      return `<div class="admin-user-row">
+        <div class="admin-user-meta">
+          <div class="admin-user-name">${esc(user.username || 'Без логина')}</div>
+          <div class="admin-user-id">ID: ${esc(String(user.id))}</div>
+        </div>
+        ${protectedAccount
+          ? '<span class="admin-protected">Защищён</span>'
+          : `<button class="admin-delete-btn" type="button" data-user-id="${esc(String(user.id))}">Удалить</button>`}
+      </div>`;
+    }).join('');
+
+    list.querySelectorAll('.admin-delete-btn').forEach(button => {
+      button.addEventListener('click', () => deleteUserAccount(button.dataset.userId, button.dataset.userName));
+    });
+  } catch (error) {
+    console.error('Admin users error:', error);
+    list.innerHTML = '<div class="auth-error"><span class="error-icon">⚠️</span><span class="error-text">Не удалось загрузить список аккаунтов</span></div>';
+  }
+}
+
+async function deleteUserAccount(userId) {
+  if (!adminAuthenticated || !userId) return;
+
+  const account = Array.from(document.querySelectorAll('.admin-user-row')).find(row => row.querySelector(`[data-user-id="${CSS.escape(userId)}"]`));
+  const username = account?.querySelector('.admin-user-name')?.textContent || 'этот аккаунт';
+  if (username.toLowerCase() === 'daybe') {
+    showToast('⛔ Основной аккаунт защищён');
+    return;
+  }
+  if (!confirm(`Удалить аккаунт «${username}»? Это действие нельзя отменить.`)) return;
+
+  try {
+    const { error } = await supabaseClient.from('users').delete().eq('id', userId);
+    if (error) throw error;
+    showToast(`✅ Аккаунт «${username}» удалён`);
+    await loadAdminUsers();
+  } catch (error) {
+    console.error('Admin delete user error:', error);
+    showToast('❌ Не удалось удалить аккаунт');
+  }
+}
+
+function closeAdminPanel() {
+  adminAuthenticated = false;
+  closeModal('adminModal');
 }
 
 function togglePasswordVisibility() {
@@ -4193,6 +4311,38 @@ function showToast(msg) {
 </script>
 
 <!-- MODALS -->
+<div class="modal" id="adminModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">⚙️ Admin panel</div>
+      <button class="modal-close" type="button" onclick="closeAdminPanel()">×</button>
+    </div>
+    <div id="adminLoginView">
+      <form class="auth-form" onsubmit="handleAdminLogin(event)">
+        <div class="auth-mode-note">Панель доступна только администратору.</div>
+        <div class="input-group">
+          <span class="input-addon">👤</span>
+          <input id="adminUsername" type="text" required autocomplete="username" placeholder="Логин администратора">
+        </div>
+        <div class="input-group">
+          <span class="input-addon">🔒</span>
+          <input id="adminPassword" type="password" required autocomplete="current-password" placeholder="Пароль администратора">
+        </div>
+        <button class="auth-btn" type="submit">Войти в панель</button>
+        <div id="adminError" class="auth-error" style="display:none;">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text"></span>
+        </div>
+      </form>
+    </div>
+    <div id="adminPanelView" style="display:none;">
+      <div class="auth-mode-note">Удаление аккаунта не затрагивает аккаунт <strong>DayBe</strong>.</div>
+      <div id="adminUsersList" class="admin-panel-list"></div>
+      <button class="btn btn-secondary btn-full" type="button" onclick="loadAdminUsers()" style="margin-top:14px;">↻ Обновить список</button>
+    </div>
+  </div>
+</div>
+
 <div class="modal" id="backupModal">
   <div class="modal-content">
     <div class="modal-header">
