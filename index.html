@@ -148,7 +148,7 @@ body {
 .admin-screen {
   position: fixed; inset: 0; z-index: 12000; display: none;
   align-items: center; justify-content: center; padding: 24px;
-  background: #f4f7fb; overflow-y: auto;
+  background: var(--bg); overflow-y: auto;
 }
 .admin-screen.open { display: flex !important; }
 .admin-screen::before {
@@ -158,31 +158,47 @@ body {
 }
 .admin-screen-card {
   position: relative; z-index: 1; width: min(100%, 760px); max-height: calc(100vh - 48px);
-  overflow-y: auto; padding: 30px; border-radius: 22px; background: #fff;
+  overflow-y: auto; padding: 30px; border-radius: 22px; background: var(--surface);
   box-shadow: 0 30px 70px rgba(15,23,42,.16);
 }
 .admin-screen-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 24px; }
-.admin-screen-title { color: #0f172a; font-size: 1.55rem; font-weight: 800; }
-.admin-screen-subtitle { color: #64748b; font-size: .82rem; margin-top: 5px; }
-.admin-back-btn { border: 1px solid #cbd5e1; border-radius: 9px; padding: 8px 12px; background: #fff; color: #475569; cursor: pointer; font: 600 .78rem var(--ff); white-space: nowrap; }
+.admin-screen-title { color: var(--ink); font-size: 1.55rem; font-weight: 800; }
+.admin-screen-subtitle { color: var(--ink-2); font-size: .82rem; margin-top: 5px; }
+.admin-back-btn { border: 1px solid var(--border); border-radius: 9px; padding: 8px 12px; background: var(--surface); color: var(--ink-2); cursor: pointer; font: 600 .78rem var(--ff); white-space: nowrap; }
 .admin-back-btn:hover { color: #1d4ed8; border-color: #93c5fd; }
+.admin-theme-switch { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 18px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.admin-theme-option { border: 1px solid var(--border); border-radius: 8px; padding: 7px 10px; background: var(--input-bg); color: var(--ink-2); cursor: pointer; font: 600 .74rem var(--ff); }
+.admin-theme-option:hover, .admin-theme-option.active { background: var(--green-lt); border-color: var(--green); color: var(--green); }
 .admin-panel-list { display: grid; gap: 8px; max-height: 48vh; overflow-y: auto; }
-.admin-table-head, .admin-user-row { display: grid; grid-template-columns: minmax(120px, 1fr) minmax(170px, 1.4fr) 110px; align-items: center; gap: 12px; }
-.admin-table-head { padding: 0 12px 8px; color: #64748b; font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
-.admin-user-row { padding: 11px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; color: #0f172a; font-size: .84rem; }
+.admin-table-head, .admin-user-row { display: grid; grid-template-columns: minmax(110px, 1fr) minmax(145px, 1.2fr) minmax(130px, 1fr) 150px; align-items: center; gap: 12px; }
+.admin-table-head { padding: 0 12px 8px; color: var(--ink-3); font-size: .7rem; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.admin-user-row { padding: 11px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input-bg); color: var(--ink); font-size: .84rem; }
 .admin-user-meta { min-width: 0; }
 .admin-user-name { font-weight: 700; overflow-wrap: anywhere; }
-.admin-user-id { color: #64748b; font-size: .7rem; overflow-wrap: anywhere; }
-.admin-protected { color: #047857; font-size: .75rem; font-weight: 700; white-space: nowrap; }
-.admin-delete-btn { min-height: 32px; padding: 6px 10px; border: 1px solid rgba(220,38,38,.25); border-radius: 7px; background: #fef2f2; color: #dc2626; cursor: pointer; font: 600 .75rem var(--ff); }
+.admin-user-id { color: var(--ink-3); font-size: .7rem; overflow-wrap: anywhere; }
+.admin-protected { color: var(--green); font-size: .75rem; font-weight: 700; white-space: nowrap; }
+.admin-delete-btn { min-height: 32px; padding: 6px 10px; border: 1px solid rgba(220,38,38,.25); border-radius: 7px; background: var(--red-lt); color: var(--red); cursor: pointer; font: 600 .75rem var(--ff); }
 .admin-delete-btn:hover { background: #dc2626; color: #fff; }
+.admin-edit-btn { min-height: 32px; padding: 6px 10px; border: 1px solid rgba(37,99,235,.25); border-radius: 7px; background: #eff6ff; color: #2563eb; cursor: pointer; font: 600 .75rem var(--ff); }
+.admin-edit-btn:hover { background: #2563eb; color: #fff; }
+.admin-actions { display: flex; justify-content: flex-end; gap: 6px; flex-wrap: wrap; }
+.admin-edit-form { display: grid; gap: 12px; }
+.admin-edit-note { color: var(--ink-2); font-size: .78rem; line-height: 1.45; }
+.admin-screen .input-group { background: var(--input-bg); border-color: var(--border); }
+.admin-screen .input-group input { color: var(--ink); }
 @media (max-width: 560px) {
   .admin-entry { top: 10px; right: 10px; }
   .admin-screen-card { padding: 22px 16px; }
   .admin-table-head { display: none; }
   .admin-user-row { grid-template-columns: minmax(0, 1fr) auto; }
-  .admin-user-row .admin-user-id { grid-column: 1; }
-  .admin-user-row .admin-delete-btn, .admin-user-row .admin-protected { grid-column: 2; grid-row: 1 / span 2; }
+  .admin-user-row .admin-user-id, .admin-user-row .admin-created-at { grid-column: 1; }
+  .admin-user-row .admin-actions { grid-column: 2; grid-row: 1 / span 3; }
+}
+@media (max-width: 520px) {
+  header { padding-left: 12px; padding-right: 12px; }
+  .hdr-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .hdr-reset, .hdr-backup, .hdr-theme, .money-toggle { min-width: 0; width: 100%; padding-left: 7px; padding-right: 7px; }
+  .hdr-sync { max-width: 100%; overflow: hidden; text-overflow: ellipsis; }
 }
 @media (max-width: 767px) { body { padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 10px); } }
 @media (min-width: 768px) { body { padding-bottom: 48px; } }
@@ -1181,6 +1197,73 @@ input:focus, select:focus {
   </div>
 </div>
 
+<div class="admin-screen" id="adminScreen">
+  <div class="admin-screen-card">
+    <div class="admin-screen-header">
+      <div>
+        <div class="admin-screen-title">⚙️ Admin panel</div>
+        <div class="admin-screen-subtitle">Управление аккаунтами FinFlow</div>
+      </div>
+      <button class="admin-back-btn" type="button" onclick="closeAdminPanel()">← К авторизации</button>
+    </div>
+    <div class="admin-theme-switch" aria-label="Тема админ-панели">
+      <button class="admin-theme-option" type="button" data-admin-theme="light" onclick="setAdminTheme('light')">☀️ Светлая</button>
+      <button class="admin-theme-option" type="button" data-admin-theme="dark" onclick="setAdminTheme('dark')">🌙 Тёмная</button>
+      <button class="admin-theme-option" type="button" data-admin-theme="auto" onclick="setAdminTheme('auto')">🔄 Авто</button>
+    </div>
+    <div id="adminLoginView">
+      <form class="auth-form" onsubmit="handleAdminLogin(event)">
+        <div class="auth-mode-note">Панель доступна только администратору.</div>
+        <div class="input-group">
+          <span class="input-addon">👤</span>
+          <input id="adminUsername" type="text" required autocomplete="username" placeholder="Логин администратора">
+        </div>
+        <div class="input-group">
+          <span class="input-addon">🔒</span>
+          <input id="adminPassword" type="password" required autocomplete="current-password" placeholder="Пароль администратора">
+        </div>
+        <button class="auth-btn" type="submit">Войти в панель</button>
+        <div id="adminError" class="auth-error" style="display:none;">
+          <span class="error-icon">⚠️</span>
+          <span class="error-text"></span>
+        </div>
+      </form>
+    </div>
+    <div id="adminPanelView" style="display:none;">
+      <div class="auth-mode-note">Удаление аккаунта не затрагивает аккаунт <strong>DayBe</strong>.</div>
+      <div class="admin-table-head"><span>Логин</span><span>ID пользователя</span><span>Дата регистрации</span><span>Действие</span></div>
+      <div id="adminUsersList" class="admin-panel-list"></div>
+      <button class="btn btn-secondary btn-full" type="button" onclick="loadAdminUsers()" style="margin-top:14px;">↻ Обновить список</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="adminEditModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <div class="modal-title">Изменить пользователя</div>
+      <button class="modal-close" type="button" onclick="closeModal('adminEditModal')">×</button>
+    </div>
+    <form class="admin-edit-form" onsubmit="saveAdminEdit(event)">
+      <input id="adminEditUserId" type="hidden">
+      <div class="input-group">
+        <span class="input-addon">👤</span>
+        <input id="adminEditUsername" type="text" required minlength="3" maxlength="32" pattern="[A-Za-z0-9_-]+" placeholder="Логин">
+      </div>
+      <div class="input-group">
+        <span class="input-addon">🔒</span>
+        <input id="adminEditPassword" type="password" minlength="8" autocomplete="new-password" placeholder="Новый пароль (необязательно)">
+      </div>
+      <div class="admin-edit-note">Оставьте пароль пустым, чтобы сохранить текущий. Изменение применяется сразу.</div>
+      <button class="auth-btn" type="submit">Сохранить изменения</button>
+      <div id="adminEditError" class="auth-error" style="display:none;">
+        <span class="error-icon">⚠️</span>
+        <span class="error-text"></span>
+      </div>
+    </form>
+  </div>
+</div>
+
 <!-- MAIN APP -->
 <div id="mainApp" style="display:none;">
 
@@ -1978,7 +2061,8 @@ function updateThemeUI(theme) {
   buttons.forEach(btn => btn.classList.remove('active'));
   
   const labels = { light: '☀️ Светлая', dark: '🌙 Тёмная', auto: '🔄 Авто' };
-  el('themeLabel').textContent = labels[theme] || 'Тема';
+  const themeLabel = el('themeLabel');
+  if (themeLabel) themeLabel.textContent = labels[theme] || 'Тема';
   
   buttons.forEach(btn => {
     const btnTheme = btn.textContent.includes('Светлая') ? 'light' 
@@ -2201,6 +2285,7 @@ let adminAuthenticated = false;
 function openAdminLogin() {
   el('authContainer').style.display = 'none';
   el('adminScreen').classList.add('open');
+  updateAdminThemeUI(localStorage.getItem('finflow-theme') || 'auto');
   el('adminLoginView').style.display = 'block';
   el('adminPanelView').style.display = 'none';
   el('adminUsername').value = '';
@@ -2234,7 +2319,7 @@ async function loadAdminUsers() {
   try {
     const { data: users, error } = await supabaseClient
       .from('users')
-      .select('id,username')
+      .select('id,username,created_at')
       .order('username', { ascending: true });
     if (error) throw error;
 
@@ -2248,18 +2333,95 @@ async function loadAdminUsers() {
       return `<div class="admin-user-row">
         <div class="admin-user-name">${esc(user.username || 'Без логина')}</div>
         <div class="admin-user-id">${esc(String(user.id))}</div>
+        <div class="admin-created-at">${formatAdminDate(user.created_at)}</div>
         ${protectedAccount
-          ? '<span class="admin-protected">Защищён</span>'
-          : `<button class="admin-delete-btn" type="button" data-user-id="${esc(String(user.id))}">Удалить</button>`}
+          ? '<div class="admin-actions"><span class="admin-protected">Защищён</span></div>'
+          : `<div class="admin-actions">
+              <button class="admin-edit-btn" type="button" data-edit-user-id="${esc(String(user.id))}" data-edit-username="${esc(user.username || '')}">Изменить</button>
+              <button class="admin-delete-btn" type="button" data-user-id="${esc(String(user.id))}">Удалить</button>
+            </div>`}
       </div>`;
     }).join('');
 
+    list.querySelectorAll('.admin-edit-btn').forEach(button => {
+      button.addEventListener('click', () => openAdminEdit(button.dataset.editUserId, button.dataset.editUsername));
+    });
     list.querySelectorAll('.admin-delete-btn').forEach(button => {
       button.addEventListener('click', () => deleteUserAccount(button.dataset.userId, button.dataset.userName));
     });
   } catch (error) {
     console.error('Admin users error:', error);
     list.innerHTML = '<div class="auth-error"><span class="error-icon">⚠️</span><span class="error-text">Не удалось загрузить список аккаунтов</span></div>';
+  }
+}
+
+function formatAdminDate(value) {
+  if (!value) return 'Не указана';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Не указана';
+  return date.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function openAdminEdit(userId, username) {
+  el('adminEditUserId').value = userId;
+  el('adminEditUsername').value = username;
+  el('adminEditPassword').value = '';
+  el('adminEditError').style.display = 'none';
+  el('adminEditModal').classList.add('show');
+}
+
+async function saveAdminEdit(event) {
+  event.preventDefault();
+  if (!adminAuthenticated) return;
+
+  const userId = el('adminEditUserId').value;
+  const username = el('adminEditUsername').value.trim();
+  const password = el('adminEditPassword').value;
+  const error = el('adminEditError');
+  const errorText = error.querySelector('.error-text');
+
+  if (!username) {
+    errorText.textContent = 'Введите логин';
+    error.style.display = 'flex';
+    return;
+  }
+  if (username.toLowerCase() === 'daybe') {
+    errorText.textContent = 'Логин DayBe зарезервирован';
+    error.style.display = 'flex';
+    return;
+  }
+  if (password && password.length < 8) {
+    errorText.textContent = 'Новый пароль должен содержать минимум 8 символов';
+    error.style.display = 'flex';
+    return;
+  }
+
+  const update = { username };
+  if (password) update.password = password;
+
+  try {
+    const { data: existing, error: lookupError } = await supabaseClient
+      .from('users')
+      .select('id')
+      .eq('username', username)
+      .neq('id', userId)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+    if (existing) {
+      errorText.textContent = 'Такой логин уже занят';
+      error.style.display = 'flex';
+      return;
+    }
+
+    const { error: updateError } = await supabaseClient.from('users').update(update).eq('id', userId);
+    if (updateError) throw updateError;
+    closeModal('adminEditModal');
+    showToast('✅ Данные пользователя обновлены');
+    await loadAdminUsers();
+  } catch (updateError) {
+    console.error('Admin user update error:', updateError);
+    errorText.textContent = 'Не удалось обновить данные пользователя';
+    error.style.display = 'flex';
   }
 }
 
@@ -2289,6 +2451,17 @@ function closeAdminPanel() {
   adminAuthenticated = false;
   el('adminScreen').classList.remove('open');
   el('authContainer').style.display = 'flex';
+}
+
+function setAdminTheme(theme) {
+  setTheme(theme);
+  updateAdminThemeUI(theme);
+}
+
+function updateAdminThemeUI(theme) {
+  document.querySelectorAll('.admin-theme-option').forEach(button => {
+    button.classList.toggle('active', button.dataset.adminTheme === theme);
+  });
 }
 
 function togglePasswordVisibility() {
@@ -4337,42 +4510,6 @@ function showToast(msg) {
 </script>
 
 <!-- MODALS -->
-<div class="admin-screen" id="adminScreen">
-  <div class="admin-screen-card">
-    <div class="admin-screen-header">
-      <div>
-        <div class="admin-screen-title">⚙️ Admin panel</div>
-        <div class="admin-screen-subtitle">Управление аккаунтами FinFlow</div>
-      </div>
-      <button class="admin-back-btn" type="button" onclick="closeAdminPanel()">← К авторизации</button>
-    </div>
-    <div id="adminLoginView">
-      <form class="auth-form" onsubmit="handleAdminLogin(event)">
-        <div class="auth-mode-note">Панель доступна только администратору.</div>
-        <div class="input-group">
-          <span class="input-addon">👤</span>
-          <input id="adminUsername" type="text" required autocomplete="username" placeholder="Логин администратора">
-        </div>
-        <div class="input-group">
-          <span class="input-addon">🔒</span>
-          <input id="adminPassword" type="password" required autocomplete="current-password" placeholder="Пароль администратора">
-        </div>
-        <button class="auth-btn" type="submit">Войти в панель</button>
-        <div id="adminError" class="auth-error" style="display:none;">
-          <span class="error-icon">⚠️</span>
-          <span class="error-text"></span>
-        </div>
-      </form>
-    </div>
-    <div id="adminPanelView" style="display:none;">
-      <div class="auth-mode-note">Удаление аккаунта не затрагивает аккаунт <strong>DayBe</strong>.</div>
-      <div class="admin-table-head"><span>Логин</span><span>ID пользователя</span><span>Действие</span></div>
-      <div id="adminUsersList" class="admin-panel-list"></div>
-      <button class="btn btn-secondary btn-full" type="button" onclick="loadAdminUsers()" style="margin-top:14px;">↻ Обновить список</button>
-    </div>
-  </div>
-</div>
-
 <div class="modal" id="backupModal">
   <div class="modal-content">
     <div class="modal-header">
