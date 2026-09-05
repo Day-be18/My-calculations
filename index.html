@@ -181,8 +181,8 @@ button, input, select, textarea { max-width: 100%; }
 .admin-user-name { font-weight: 700; overflow-wrap: anywhere; }
 .admin-user-id { color: var(--ink-3); font-size: .7rem; overflow-wrap: anywhere; }
 .admin-password-mask { color: var(--ink-3); font-size: .78rem; letter-spacing: .08em; white-space: nowrap; }
-.admin-password-cell { display: inline-flex; align-items: center; gap: 6px; min-width: 0; }
-.admin-password-toggle { width: 28px; height: 28px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--ink-2); cursor: pointer; font-size: .82rem; line-height: 1; }
+.admin-password-cell { display: inline-flex; align-items: center; gap: 6px; min-width: 0; position: relative; z-index: 2; }
+.admin-password-toggle { width: 34px; min-width: 34px; height: 34px; flex: 0 0 34px; padding: 0; border: 1px solid var(--border); border-radius: 7px; background: var(--surface); color: var(--ink-2); cursor: pointer; font-size: .9rem; line-height: 1; touch-action: manipulation; position: relative; z-index: 3; }
 .admin-password-toggle:hover { color: var(--blue); border-color: var(--blue); background: var(--blue-lt); }
 .admin-protected { color: var(--green); font-size: .75rem; font-weight: 700; white-space: nowrap; }
 .admin-delete-btn { min-height: 32px; padding: 6px 10px; border: 1px solid rgba(220,38,38,.25); border-radius: 7px; background: var(--red-lt); color: var(--red); cursor: pointer; font: 600 .75rem var(--ff); }
@@ -2345,7 +2345,7 @@ async function loadAdminUsers() {
         <div class="admin-created-at">${formatAdminDate(user.created_at)}</div>
         <div class="admin-password-cell">
           <span class="admin-password-mask">••••••••</span>
-          ${protectedAccount || !user.password ? '' : `<button class="admin-password-toggle" type="button" data-password="${esc(String(user.password))}" aria-label="Показать пароль" title="Показать пароль">👁</button>`}
+          ${protectedAccount || !user.password ? '' : `<button class="admin-password-toggle" type="button" data-password="${esc(String(user.password))}" data-visible="false" aria-label="Показать пароль" aria-pressed="false" title="Показать пароль" onclick="toggleAdminPassword(this)">👁</button>`}
         </div>
         ${protectedAccount
           ? '<div class="admin-actions"><span class="admin-protected">Защищён</span></div>'
@@ -2358,16 +2358,6 @@ async function loadAdminUsers() {
 
     list.querySelectorAll('.admin-edit-btn').forEach(button => {
       button.addEventListener('click', () => openAdminEdit(button.dataset.editUserId, button.dataset.editUsername));
-    });
-    list.querySelectorAll('.admin-password-toggle').forEach(button => {
-      button.addEventListener('click', () => {
-        const password = button.previousElementSibling;
-        const isVisible = password.textContent !== '••••••••';
-        password.textContent = isVisible ? '••••••••' : button.dataset.password;
-        button.textContent = isVisible ? '👁' : '🙈';
-        button.setAttribute('aria-label', isVisible ? 'Показать пароль' : 'Скрыть пароль');
-        button.title = isVisible ? 'Показать пароль' : 'Скрыть пароль';
-      });
     });
     list.querySelectorAll('.admin-delete-btn').forEach(button => {
       button.addEventListener('click', () => deleteUserAccount(button.dataset.userId, button.dataset.userName));
@@ -2383,6 +2373,19 @@ function formatAdminDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return 'Не указана';
   return date.toLocaleString('ru-RU', { dateStyle: 'medium', timeStyle: 'short' });
+}
+
+function toggleAdminPassword(button) {
+  const password = button.closest('.admin-password-cell')?.querySelector('.admin-password-mask');
+  if (!password) return;
+
+  const nextVisible = button.dataset.visible !== 'true';
+  password.textContent = nextVisible ? button.dataset.password : '••••••••';
+  button.dataset.visible = String(nextVisible);
+  button.textContent = nextVisible ? '🙈' : '👁';
+  button.setAttribute('aria-pressed', String(nextVisible));
+  button.setAttribute('aria-label', nextVisible ? 'Скрыть пароль' : 'Показать пароль');
+  button.title = nextVisible ? 'Скрыть пароль' : 'Показать пароль';
 }
 
 function openAdminEdit(userId, username) {
